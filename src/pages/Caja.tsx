@@ -13,13 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   getCashEntries,
   saveCashEntry,
   getTodaySummary,
@@ -37,7 +30,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
-const EXPENSE_CATEGORIES = ["Gasolina", "Repuestos", "Comida", "Transporte", "Otros"];
+
 
 export default function Caja() {
   const { toast } = useToast();
@@ -176,20 +169,7 @@ export default function Caja() {
               <Label>Monto</Label>
               <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" min={0} />
             </div>
-            {type === "expense" && (
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className={`space-y-2 ${type === "income" ? "sm:col-span-1" : "sm:col-span-2"}`}>
+            <div className="space-y-2">
               <Label>Nota / Descripción (opcional)</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción del movimiento" rows={2} />
             </div>
@@ -222,7 +202,6 @@ export default function Caja() {
                       <p className="font-medium text-sm">{e.description}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(e.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-                        {e.category && ` • ${e.category}`}
                       </p>
                     </div>
                   </div>
