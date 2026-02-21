@@ -6,6 +6,10 @@ import {
   Lock,
   TrendingUp,
   TrendingDown,
+  Pencil,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,9 +19,13 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   getCashEntries,
   saveCashEntry,
+  updateCashEntry,
+  deleteCashEntry,
   getTodaySummary,
   formatCOP,
   generateId,
+  isTodayClosed,
+  closeTodayCash,
   type CashEntry,
 } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
@@ -29,26 +37,45 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Caja() {
   const { toast } = useToast();
   const [entries, setEntries] = useState<CashEntry[]>(getCashEntries());
   const [summary, setSummary] = useState(getTodaySummary());
+  const [closed, setClosed] = useState(isTodayClosed());
 
   // Form
   const [type, setType] = useState<"income" | "expense">("income");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const refresh = () => {
     setEntries(getCashEntries());
     setSummary(getTodaySummary());
+    setClosed(isTodayClosed());
   };
 
   const handleAdd = () => {
+    if (closed) {
+      toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" });
+      return;
+    }
     const amt = Number(amount);
     if (!amt || amt <= 0) {
       toast({ title: "Ingresa un monto válido", variant: "destructive" });
@@ -58,15 +85,50 @@ export default function Caja() {
       id: generateId(),
       type,
       amount: amt,
-      description: description || (type === "income" ? "Pago cliente" : category || "Gasto"),
-      category: type === "expense" ? category : undefined,
+      description: description || (type === "income" ? "Pago cliente" : "Gasto"),
       createdAt: new Date().toISOString(),
     });
     refresh();
     setAmount("");
     setDescription("");
-    setCategory("");
     toast({ title: type === "income" ? "Entrada registrada ✓" : "Salida registrada ✓" });
+  };
+
+  const handleDelete = (id: string) => {
+    deleteCashEntry(id);
+    refresh();
+    toast({ title: "Movimiento eliminado" });
+  };
+
+  const startEdit = (entry: CashEntry) => {
+    setEditingId(entry.id);
+    setEditAmount(entry.amount.toString());
+    setEditDescription(entry.description);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditAmount("");
+    setEditDescription("");
+  };
+
+  const saveEdit = (id: string) => {
+    const amt = Number(editAmount);
+    if (!amt || amt <= 0) {
+      toast({ title: "Monto inválido", variant: "destructive" });
+      return;
+    }
+    updateCashEntry(id, { amount: amt, description: editDescription });
+    refresh();
+    cancelEdit();
+    toast({ title: "Movimiento actualizado ✓" });
+  };
+
+  const handleClose = () => {
+    if (closed) return;
+    closeTodayCash();
+    refresh();
+    toast({ title: "Cierre de caja realizado ✓", description: "El resumen quedó guardado en Reportes." });
   };
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -107,13 +169,42 @@ export default function Caja() {
               <p className="text-xs text-muted-foreground text-center">
                 {todayEntries.length} movimientos registrados hoy
               </p>
+              {closed ? (
+                <p className="text-center text-sm font-medium text-success">✓ Caja cerrada hoy</p>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button className="w-full" variant="destructive" disabled={todayEntries.length === 0}>
+                      <Lock className="h-4 w-4 mr-1" /> Confirmar Cierre de Caja
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Cerrar la caja de hoy?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Se guardará el resumen del día en reportes. No podrás agregar, editar ni eliminar movimientos de hoy después del cierre.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClose}>Sí, cerrar caja</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
             <DialogClose asChild>
-              <Button className="w-full">Cerrar</Button>
+              <Button variant="outline" className="w-full">Cerrar</Button>
             </DialogClose>
           </DialogContent>
         </Dialog>
       </div>
+
+      {closed && (
+        <div className="p-3 rounded-lg bg-success/10 border border-success/20 text-center">
+          <p className="text-sm font-medium text-success">✓ La caja de hoy ya fue cerrada</p>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
@@ -141,44 +232,46 @@ export default function Caja() {
       </div>
 
       {/* Add entry */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="section-title flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" /> Registrar Movimiento
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={type === "income" ? "default" : "outline"}
-              onClick={() => setType("income")}
-              className="w-full"
-            >
-              <ArrowUpRight className="h-4 w-4 mr-1" /> Entrada
-            </Button>
-            <Button
-              variant={type === "expense" ? "destructive" : "outline"}
-              onClick={() => setType("expense")}
-              className="w-full"
-            >
-              <ArrowDownRight className="h-4 w-4 mr-1" /> Salida
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Monto</Label>
-              <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" min={0} />
+      {!closed && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="section-title flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" /> Registrar Movimiento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={type === "income" ? "default" : "outline"}
+                onClick={() => setType("income")}
+                className="w-full"
+              >
+                <ArrowUpRight className="h-4 w-4 mr-1" /> Entrada
+              </Button>
+              <Button
+                variant={type === "expense" ? "destructive" : "outline"}
+                onClick={() => setType("expense")}
+                className="w-full"
+              >
+                <ArrowDownRight className="h-4 w-4 mr-1" /> Salida
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label>Nota / Descripción (opcional)</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción del movimiento" rows={2} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Monto</Label>
+                <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" min={0} />
+              </div>
+              <div className="space-y-2">
+                <Label>Nota / Descripción (opcional)</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción del movimiento" rows={2} />
+              </div>
             </div>
-          </div>
-          <Button onClick={handleAdd} className="w-full sm:w-auto">
-            Registrar {type === "income" ? "Entrada" : "Salida"}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button onClick={handleAdd} className="w-full sm:w-auto">
+              Registrar {type === "income" ? "Entrada" : "Salida"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Today's entries */}
       <Card>
@@ -191,23 +284,81 @@ export default function Caja() {
           ) : (
             <div className="space-y-2">
               {todayEntries.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                  <div className="flex items-center gap-3">
-                    {e.type === "income" ? (
-                      <TrendingUp className="h-4 w-4 text-success shrink-0" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
-                    )}
-                    <div>
-                      <p className="font-medium text-sm">{e.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(e.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`font-semibold text-sm ${e.type === "income" ? "text-success" : "text-destructive"}`}>
-                    {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
-                  </span>
+                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
+                  {editingId === e.id ? (
+                    <>
+                      <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                        <Input
+                          type="number"
+                          value={editAmount}
+                          onChange={(ev) => setEditAmount(ev.target.value)}
+                          className="w-28"
+                          min={0}
+                        />
+                        <Input
+                          value={editDescription}
+                          onChange={(ev) => setEditDescription(ev.target.value)}
+                          placeholder="Descripción"
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => saveEdit(e.id)}>
+                          <Check className="h-4 w-4 text-success" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={cancelEdit}>
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {e.type === "income" ? (
+                          <TrendingUp className="h-4 w-4 text-success shrink-0" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{e.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(e.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-semibold text-sm ${e.type === "income" ? "text-success" : "text-destructive"}`}>
+                          {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
+                        </span>
+                        {!closed && (
+                          <>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(e)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Se eliminará "{e.description}" por {formatCOP(e.amount)}. Esta acción no se puede deshacer.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(e.id)}>Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
