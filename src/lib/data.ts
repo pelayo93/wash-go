@@ -84,7 +84,7 @@ export interface WasherStatus {
 
 export function getWasherStatus(): WasherStatus {
   const stored = localStorage.getItem(WASHERS_KEY);
-  return stored ? JSON.parse(stored) : { active: 5, warehouse: 8, maintenance: 2 };
+  return stored ? JSON.parse(stored) : { active: 0, warehouse: 0, maintenance: 0 };
 }
 
 export function saveWasherStatus(status: WasherStatus) {
