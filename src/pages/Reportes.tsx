@@ -3,10 +3,12 @@ import { BarChart3, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCashEntries, formatCOP } from "@/lib/data";
+import { getCashEntries, getDailyCloses, formatCOP } from "@/lib/data";
 
 export default function Reportes() {
   const allEntries = getCashEntries();
+  const dailyCloses = getDailyCloses();
+
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -14,28 +16,38 @@ export default function Reportes() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  const filtered = useMemo(() => {
-    return allEntries.filter((e) => {
-      const date = e.createdAt.split("T")[0];
-      return date >= startDate && date <= endDate;
-    });
-  }, [allEntries, startDate, endDate]);
-
-  const totalIncome = filtered.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0);
-  const totalExpense = filtered.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
-
-  // Group by date
+  // Merge: use daily closes for closed days, live entries for unclosed days
   const byDate = useMemo(() => {
-    const map: Record<string, { income: number; expense: number; count: number }> = {};
-    filtered.forEach((e) => {
-      const date = e.createdAt.split("T")[0];
-      if (!map[date]) map[date] = { income: 0, expense: 0, count: 0 };
-      map[date].count++;
-      if (e.type === "income") map[date].income += e.amount;
-      else map[date].expense += e.amount;
+    const map: Record<string, { income: number; expense: number; count: number; closed: boolean }> = {};
+
+    // Add closed days
+    dailyCloses.forEach((c) => {
+      if (c.date >= startDate && c.date <= endDate) {
+        map[c.date] = {
+          income: c.totalIncome,
+          expense: c.totalExpense,
+          count: c.entries.length,
+          closed: true,
+        };
+      }
     });
+
+    // Add unclosed days from live entries
+    allEntries.forEach((e) => {
+      const date = e.createdAt.split("T")[0];
+      if (date >= startDate && date <= endDate && !map[date]?.closed) {
+        if (!map[date]) map[date] = { income: 0, expense: 0, count: 0, closed: false };
+        map[date].count++;
+        if (e.type === "income") map[date].income += e.amount;
+        else map[date].expense += e.amount;
+      }
+    });
+
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
-  }, [filtered]);
+  }, [allEntries, dailyCloses, startDate, endDate]);
+
+  const totalIncome = byDate.reduce((s, [, d]) => s + d.income, 0);
+  const totalExpense = byDate.reduce((s, [, d]) => s + d.expense, 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -114,7 +126,7 @@ export default function Reportes() {
             <div className="space-y-2">
               {byDate.map(([date, data]) => (
                 <div key={date} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
-                  <div>
+                  <div className="flex items-center gap-2">
                     <p className="font-medium text-sm">
                       {new Date(date + "T12:00:00").toLocaleDateString("es-CO", {
                         weekday: "short",
@@ -122,7 +134,10 @@ export default function Reportes() {
                         month: "short",
                       })}
                     </p>
-                    <p className="text-xs text-muted-foreground">{data.count} movimientos</p>
+                    {data.closed && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/10 text-success font-medium">Cerrado</span>
+                    )}
+                    <p className="text-xs text-muted-foreground">{data.count} mov.</p>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-success font-medium">+{formatCOP(data.income)}</span>

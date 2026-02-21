@@ -75,6 +75,7 @@ export interface DailyClose {
 const RENTALS_KEY = "lavadoras_rentals";
 const CASH_KEY = "lavadoras_cash";
 const WASHERS_KEY = "lavadoras_washers";
+const DAILY_CLOSES_KEY = "lavadoras_daily_closes";
 
 export interface WasherStatus {
   active: number;
@@ -118,6 +119,16 @@ export function saveCashEntry(entry: CashEntry) {
   localStorage.setItem(CASH_KEY, JSON.stringify(entries));
 }
 
+export function updateCashEntry(id: string, updates: Partial<CashEntry>) {
+  const entries = getCashEntries().map(e => e.id === id ? { ...e, ...updates } : e);
+  localStorage.setItem(CASH_KEY, JSON.stringify(entries));
+}
+
+export function deleteCashEntry(id: string) {
+  const entries = getCashEntries().filter(e => e.id !== id);
+  localStorage.setItem(CASH_KEY, JSON.stringify(entries));
+}
+
 export function getTodayEntries(): CashEntry[] {
   const today = new Date().toISOString().split("T")[0];
   return getCashEntries().filter(e => e.createdAt.startsWith(today));
@@ -128,6 +139,40 @@ export function getTodaySummary() {
   const income = entries.filter(e => e.type === "income").reduce((s, e) => s + e.amount, 0);
   const expense = entries.filter(e => e.type === "expense").reduce((s, e) => s + e.amount, 0);
   return { income, expense, balance: income - expense };
+}
+
+// Daily closes
+export function getDailyCloses(): DailyClose[] {
+  const stored = localStorage.getItem(DAILY_CLOSES_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
+export function saveDailyClose(close: DailyClose) {
+  const closes = getDailyCloses();
+  closes.unshift(close);
+  localStorage.setItem(DAILY_CLOSES_KEY, JSON.stringify(closes));
+}
+
+export function isTodayClosed(): boolean {
+  const today = new Date().toISOString().split("T")[0];
+  return getDailyCloses().some(c => c.date === today);
+}
+
+export function closeTodayCash(): DailyClose {
+  const today = new Date().toISOString().split("T")[0];
+  const todayEntries = getTodayEntries();
+  const income = todayEntries.filter(e => e.type === "income").reduce((s, e) => s + e.amount, 0);
+  const expense = todayEntries.filter(e => e.type === "expense").reduce((s, e) => s + e.amount, 0);
+  const close: DailyClose = {
+    id: generateId(),
+    date: today,
+    totalIncome: income,
+    totalExpense: expense,
+    balance: income - expense,
+    entries: todayEntries,
+  };
+  saveDailyClose(close);
+  return close;
 }
 
 export function formatCOP(amount: number): string {
