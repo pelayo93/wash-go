@@ -49,6 +49,11 @@ export interface Rental {
   extraHours: number;
   floorSurcharge: number;
   total: number;
+  floorNumber: string;
+  deliveredBy: string;
+  pickedUpBy: string;
+  entryTime: string;
+  exitTime: string;
   status: "active" | "completed" | "cancelled";
   createdAt: string;
 }
