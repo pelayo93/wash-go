@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   WashingMachine,
   Plus,
@@ -22,24 +22,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  ZONES,
-  EXTRA_HORA,
-  PISO_EXTRA,
-  getRentals,
-  saveRental,
-  updateRental,
-  saveCashEntry,
-  formatCOP,
-  generateId,
-  type Rental,
-} from "@/lib/data";
+import { ZONES, EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
+import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry } from "@/lib/supabase-data";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Alquileres() {
   const { toast } = useToast();
-  const [rentals, setRentals] = useState<Rental[]>(getRentals());
+  const { user } = useAuth();
+  const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form state
   const [clientName, setClientName] = useState("");
@@ -61,64 +54,74 @@ export default function Alquileres() {
   const floorSurcharge = floor === "3-4" ? PISO_EXTRA["3-4"] : floor === "5-6" ? PISO_EXTRA["5-6"] : 0;
   const total = basePrice + extraHours * EXTRA_HORA + floorSurcharge;
 
+  const loadRentals = useCallback(async () => {
+    try {
+      const data = await fetchRentals();
+      setRentals(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadRentals(); }, [loadRentals]);
+
   const resetForm = () => {
-    setClientName("");
-    setPhone("");
-    setAddress("");
-    setSelectedZone("");
-    setServiceType("");
-    setExtraHours(0);
-    setFloor("1-2");
-    setFloorNumber("");
-    setDeliveredBy("");
-    setPickedUpBy("");
-    setEntryTime("");
-    setExitTime("");
+    setClientName(""); setPhone(""); setAddress("");
+    setSelectedZone(""); setServiceType("");
+    setExtraHours(0); setFloor("1-2"); setFloorNumber("");
+    setDeliveredBy(""); setPickedUpBy("");
+    setEntryTime(""); setExitTime("");
     setShowForm(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!clientName || !phone || !address || !selectedZone || !serviceType) {
       toast({ title: "Completa todos los campos", variant: "destructive" });
       return;
     }
-    const rental: Rental = {
-      id: generateId(),
-      clientName,
-      phone,
-      address,
-      zone: selectedZone,
-      serviceType,
-      price: basePrice,
-      extraHours,
-      floorSurcharge,
-      total,
-      floorNumber,
-      deliveredBy,
-      pickedUpBy,
-      entryTime,
-      exitTime,
-      status: "active",
-      createdAt: new Date().toISOString(),
-    };
-    saveRental(rental);
-    saveCashEntry({
-      id: generateId(),
-      type: "income",
-      amount: total,
-      description: `Alquiler ${serviceType} - ${clientName} (${selectedZone})`,
-      category: "alquiler",
-      createdAt: new Date().toISOString(),
-    });
-    setRentals(getRentals());
-    resetForm();
-    toast({ title: "Alquiler registrado ✓" });
+    try {
+      await insertRental({
+        client_name: clientName,
+        phone,
+        address,
+        zone: selectedZone,
+        service_type: serviceType,
+        price: basePrice,
+        extra_hours: extraHours,
+        floor_surcharge: floorSurcharge,
+        total,
+        floor_number: floorNumber,
+        delivered_by: deliveredBy,
+        picked_up_by: pickedUpBy,
+        entry_time: entryTime,
+        exit_time: exitTime,
+        created_by: user!.id,
+      });
+      await insertCashEntry({
+        type: "income",
+        amount: total,
+        description: `Alquiler ${serviceType} - ${clientName} (${selectedZone})`,
+        category: "alquiler",
+        created_by: user!.id,
+      });
+      await loadRentals();
+      resetForm();
+      toast({ title: "Alquiler registrado ✓" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error al registrar", variant: "destructive" });
+    }
   };
 
-  const completeRental = (id: string) => {
-    updateRental(id, { status: "completed" });
-    setRentals(getRentals());
-    toast({ title: "Alquiler completado ✓" });
+  const completeRental = async (id: string) => {
+    try {
+      await updateRentalStatus(id, "completed");
+      await loadRentals();
+      toast({ title: "Alquiler completado ✓" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error", variant: "destructive" });
+    }
   };
 
   return (
@@ -189,7 +192,7 @@ export default function Alquileres() {
                     <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
                   </SelectContent>
                 </Select>
-               </div>
+              </div>
               <div className="space-y-2">
                 <Label>Número de Piso</Label>
                 <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
@@ -256,7 +259,9 @@ export default function Alquileres() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {rentals.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>
+          ) : rentals.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               No hay alquileres registrados
             </p>
@@ -266,21 +271,20 @@ export default function Alquileres() {
                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm truncate">{r.clientName}</p>
+                      <p className="font-medium text-sm truncate">{r.client_name}</p>
                       <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-xs">
                         {r.status === "active" ? "Activo" : "Completado"}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.zone} • {r.serviceType} • {r.address} {r.floorNumber && `• Piso ${r.floorNumber}`}
+                      {r.zone} • {r.service_type} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.deliveredBy && `Entregó: ${r.deliveredBy}`}{r.pickedUpBy && ` • Retiró: ${r.pickedUpBy}`}
+                      {r.delivered_by && `Entregó: ${r.delivered_by}`}{r.picked_up_by && ` • Retiró: ${r.picked_up_by}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {r.entryTime && `Entrada: ${r.entryTime}`}{r.exitTime && ` • Salida: ${r.exitTime}`} • {new Date(r.createdAt).toLocaleDateString("es-CO")}
+                      {r.entry_time && `Entrada: ${r.entry_time}`}{r.exit_time && ` • Salida: ${r.exit_time}`} • {new Date(r.created_at).toLocaleDateString("es-CO")}
                     </p>
-                    
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-semibold text-sm">{formatCOP(r.total)}</span>
