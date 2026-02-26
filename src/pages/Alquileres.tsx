@@ -7,6 +7,8 @@ import {
   User,
   Check,
   X,
+  Clock,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,11 @@ export default function Alquileres() {
   const [serviceType, setServiceType] = useState("");
   const [extraHours, setExtraHours] = useState(0);
   const [floor, setFloor] = useState("1-2");
+  const [floorNumber, setFloorNumber] = useState("");
+  const [deliveredBy, setDeliveredBy] = useState("");
+  const [pickedUpBy, setPickedUpBy] = useState("");
+  const [entryTime, setEntryTime] = useState("");
+  const [exitTime, setExitTime] = useState("");
 
   const zone = ZONES.find((z) => z.name === selectedZone);
   const serviceTypes = zone ? Object.keys(zone.prices) : [];
@@ -62,6 +69,11 @@ export default function Alquileres() {
     setServiceType("");
     setExtraHours(0);
     setFloor("1-2");
+    setFloorNumber("");
+    setDeliveredBy("");
+    setPickedUpBy("");
+    setEntryTime("");
+    setExitTime("");
     setShowForm(false);
   };
 
@@ -81,6 +93,11 @@ export default function Alquileres() {
       extraHours,
       floorSurcharge,
       total,
+      floorNumber,
+      deliveredBy,
+      pickedUpBy,
+      entryTime,
+      exitTime,
       status: "active",
       createdAt: new Date().toISOString(),
     };
@@ -172,6 +189,26 @@ export default function Alquileres() {
                     <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
                   </SelectContent>
                 </Select>
+               </div>
+              <div className="space-y-2">
+                <Label>Número de Piso</Label>
+                <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Entregó</Label>
+                <Input value={deliveredBy} onChange={(e) => setDeliveredBy(e.target.value)} placeholder="Nombre de quien entregó" />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
+                <Input value={pickedUpBy} onChange={(e) => setPickedUpBy(e.target.value)} placeholder="Nombre de quien retiró" />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Entrada</Label>
+                <Input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Salida</Label>
+                <Input type="time" value={exitTime} onChange={(e) => setExitTime(e.target.value)} />
               </div>
             </div>
 
@@ -235,11 +272,15 @@ export default function Alquileres() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.zone} • {r.serviceType} • {r.address}
+                      {r.zone} • {r.serviceType} • {r.address} {r.floorNumber && `• Piso ${r.floorNumber}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {r.deliveredBy && `Entregó: ${r.deliveredBy}`}{r.pickedUpBy && ` • Retiró: ${r.pickedUpBy}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleDateString("es-CO")} {new Date(r.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                      {r.entryTime && `Entrada: ${r.entryTime}`}{r.exitTime && ` • Salida: ${r.exitTime}`} • {new Date(r.createdAt).toLocaleDateString("es-CO")}
                     </p>
+                    
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-semibold text-sm">{formatCOP(r.total)}</span>
