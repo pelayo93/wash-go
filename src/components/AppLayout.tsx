@@ -7,18 +7,24 @@ import {
   BarChart3,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/alquileres", label: "Alquileres", icon: WashingMachine },
-  { to: "/caja", label: "Caja", icon: Wallet },
-  { to: "/reportes", label: "Reportes", icon: BarChart3 },
+const allNavItems = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin"] },
+  { to: "/alquileres", label: "Alquileres", icon: WashingMachine, roles: ["admin", "entrega"] },
+  { to: "/caja", label: "Caja", icon: Wallet, roles: ["admin"] },
+  { to: "/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { role, signOut, user } = useAuth();
+
+  const navItems = allNavItems.filter((item) => role && item.roles.includes(role));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -48,6 +54,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="ml-2 text-sidebar-muted hover:text-sidebar-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </nav>
           {/* Mobile toggle */}
           <button
@@ -78,6 +92,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            <button
+              onClick={signOut}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent w-full"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </button>
           </nav>
         )}
       </header>

@@ -1,13 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BarChart3, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCashEntries, getDailyCloses, formatCOP } from "@/lib/data";
+import { formatCOP } from "@/lib/data";
+import { fetchCashEntries, fetchDailyCloses } from "@/lib/supabase-data";
 
 export default function Reportes() {
-  const allEntries = getCashEntries();
-  const dailyCloses = getDailyCloses();
+  const [allEntries, setAllEntries] = useState<any[]>([]);
+  const [dailyCloses, setDailyCloses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -16,25 +18,32 @@ export default function Reportes() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  // Merge: use daily closes for closed days, live entries for unclosed days
+  useEffect(() => {
+    async function load() {
+      try {
+        const [entries, closes] = await Promise.all([fetchCashEntries(), fetchDailyCloses()]);
+        setAllEntries(entries);
+        setDailyCloses(closes);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   const byDate = useMemo(() => {
     const map: Record<string, { income: number; expense: number; count: number; closed: boolean }> = {};
 
-    // Add closed days
     dailyCloses.forEach((c) => {
       if (c.date >= startDate && c.date <= endDate) {
-        map[c.date] = {
-          income: c.totalIncome,
-          expense: c.totalExpense,
-          count: c.entries.length,
-          closed: true,
-        };
+        map[c.date] = { income: c.total_income, expense: c.total_expense, count: 0, closed: true };
       }
     });
 
-    // Add unclosed days from live entries
     allEntries.forEach((e) => {
-      const date = e.createdAt.split("T")[0];
+      const date = e.created_at.split("T")[0];
       if (date >= startDate && date <= endDate && !map[date]?.closed) {
         if (!map[date]) map[date] = { income: 0, expense: 0, count: 0, closed: false };
         map[date].count++;
@@ -49,6 +58,10 @@ export default function Reportes() {
   const totalIncome = byDate.reduce((s, [, d]) => s + d.income, 0);
   const totalExpense = byDate.reduce((s, [, d]) => s + d.expense, 0);
 
+  if (loading) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -56,7 +69,6 @@ export default function Reportes() {
         <p className="text-sm text-muted-foreground">Historial financiero por rango de fechas</p>
       </div>
 
-      {/* Date filters */}
       <Card>
         <CardContent className="pt-5">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
@@ -72,7 +84,6 @@ export default function Reportes() {
         </CardContent>
       </Card>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="card-success">
           <CardContent className="pt-5 pb-4 flex items-center gap-4">
@@ -109,7 +120,6 @@ export default function Reportes() {
         </Card>
       </div>
 
-      {/* Daily breakdown */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="section-title flex items-center gap-2">
@@ -119,20 +129,14 @@ export default function Reportes() {
         </CardHeader>
         <CardContent>
           {byDate.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              No hay datos en este rango
-            </p>
+            <p className="text-sm text-muted-foreground py-8 text-center">No hay datos en este rango</p>
           ) : (
             <div className="space-y-2">
               {byDate.map(([date, data]) => (
                 <div key={date} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm">
-                      {new Date(date + "T12:00:00").toLocaleDateString("es-CO", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })}
+                      {new Date(date + "T12:00:00").toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })}
                     </p>
                     {data.closed && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/10 text-success font-medium">Cerrado</span>

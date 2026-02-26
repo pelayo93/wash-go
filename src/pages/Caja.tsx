@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -16,18 +16,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCOP } from "@/lib/data";
 import {
-  getCashEntries,
-  saveCashEntry,
+  fetchTodayCashEntries,
+  insertCashEntry,
   updateCashEntry,
   deleteCashEntry,
-  getTodaySummary,
-  formatCOP,
-  generateId,
   isTodayClosed,
-  closeTodayCash,
-  type CashEntry,
-} from "@/lib/data";
+  insertDailyClose,
+} from "@/lib/supabase-data";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -51,9 +49,10 @@ import {
 
 export default function Caja() {
   const { toast } = useToast();
-  const [entries, setEntries] = useState<CashEntry[]>(getCashEntries());
-  const [summary, setSummary] = useState(getTodaySummary());
-  const [closed, setClosed] = useState(isTodayClosed());
+  const { user } = useAuth();
+  const [entries, setEntries] = useState<any[]>([]);
+  const [closed, setClosed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form
   const [type, setType] = useState<"income" | "expense">("income");
@@ -65,13 +64,30 @@ export default function Caja() {
   const [editAmount, setEditAmount] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  const refresh = () => {
-    setEntries(getCashEntries());
-    setSummary(getTodaySummary());
-    setClosed(isTodayClosed());
+  const refresh = useCallback(async () => {
+    try {
+      const [todayEntries, todayClosed] = await Promise.all([
+        fetchTodayCashEntries(),
+        isTodayClosed(),
+      ]);
+      setEntries(todayEntries);
+      setClosed(todayClosed);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const summary = {
+    income: entries.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0),
+    expense: entries.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0),
+    get balance() { return this.income - this.expense; },
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (closed) {
       toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" });
       return;
@@ -81,26 +97,33 @@ export default function Caja() {
       toast({ title: "Ingresa un monto válido", variant: "destructive" });
       return;
     }
-    saveCashEntry({
-      id: generateId(),
-      type,
-      amount: amt,
-      description: description || (type === "income" ? "Pago cliente" : "Gasto"),
-      createdAt: new Date().toISOString(),
-    });
-    refresh();
-    setAmount("");
-    setDescription("");
-    toast({ title: type === "income" ? "Entrada registrada ✓" : "Salida registrada ✓" });
+    try {
+      await insertCashEntry({
+        type,
+        amount: amt,
+        description: description || (type === "income" ? "Pago cliente" : "Gasto"),
+        created_by: user!.id,
+      });
+      await refresh();
+      setAmount("");
+      setDescription("");
+      toast({ title: type === "income" ? "Entrada registrada ✓" : "Salida registrada ✓" });
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteCashEntry(id);
-    refresh();
-    toast({ title: "Movimiento eliminado" });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCashEntry(id);
+      await refresh();
+      toast({ title: "Movimiento eliminado" });
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    }
   };
 
-  const startEdit = (entry: CashEntry) => {
+  const startEdit = (entry: any) => {
     setEditingId(entry.id);
     setEditAmount(entry.amount.toString());
     setEditDescription(entry.description);
@@ -112,27 +135,43 @@ export default function Caja() {
     setEditDescription("");
   };
 
-  const saveEdit = (id: string) => {
+  const saveEdit = async (id: string) => {
     const amt = Number(editAmount);
     if (!amt || amt <= 0) {
       toast({ title: "Monto inválido", variant: "destructive" });
       return;
     }
-    updateCashEntry(id, { amount: amt, description: editDescription });
-    refresh();
-    cancelEdit();
-    toast({ title: "Movimiento actualizado ✓" });
+    try {
+      await updateCashEntry(id, { amount: amt, description: editDescription });
+      await refresh();
+      cancelEdit();
+      toast({ title: "Movimiento actualizado ✓" });
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (closed) return;
-    closeTodayCash();
-    refresh();
-    toast({ title: "Cierre de caja realizado ✓", description: "El resumen quedó guardado en Reportes." });
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      await insertDailyClose({
+        date: today,
+        total_income: summary.income,
+        total_expense: summary.expense,
+        balance: summary.balance,
+        closed_by: user!.id,
+      });
+      await refresh();
+      toast({ title: "Cierre de caja realizado ✓", description: "El resumen quedó guardado en Reportes." });
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    }
   };
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayEntries = entries.filter((e) => e.createdAt.startsWith(todayStr));
+  if (loading) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -167,14 +206,14 @@ export default function Caja() {
                 <span className="text-xl font-bold">{formatCOP(summary.balance)}</span>
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                {todayEntries.length} movimientos registrados hoy
+                {entries.length} movimientos registrados hoy
               </p>
               {closed ? (
                 <p className="text-center text-sm font-medium text-success">✓ Caja cerrada hoy</p>
               ) : (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button className="w-full" variant="destructive" disabled={todayEntries.length === 0}>
+                    <Button className="w-full" variant="destructive" disabled={entries.length === 0}>
                       <Lock className="h-4 w-4 mr-1" /> Confirmar Cierre de Caja
                     </Button>
                   </AlertDialogTrigger>
@@ -241,18 +280,10 @@ export default function Caja() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant={type === "income" ? "default" : "outline"}
-                onClick={() => setType("income")}
-                className="w-full"
-              >
+              <Button variant={type === "income" ? "default" : "outline"} onClick={() => setType("income")} className="w-full">
                 <ArrowUpRight className="h-4 w-4 mr-1" /> Entrada
               </Button>
-              <Button
-                variant={type === "expense" ? "destructive" : "outline"}
-                onClick={() => setType("expense")}
-                className="w-full"
-              >
+              <Button variant={type === "expense" ? "destructive" : "outline"} onClick={() => setType("expense")} className="w-full">
                 <ArrowDownRight className="h-4 w-4 mr-1" /> Salida
               </Button>
             </div>
@@ -276,31 +307,20 @@ export default function Caja() {
       {/* Today's entries */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="section-title">Movimientos de Hoy ({todayEntries.length})</CardTitle>
+          <CardTitle className="section-title">Movimientos de Hoy ({entries.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {todayEntries.length === 0 ? (
+          {entries.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Sin movimientos</p>
           ) : (
             <div className="space-y-2">
-              {todayEntries.map((e) => (
+              {entries.map((e) => (
                 <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   {editingId === e.id ? (
                     <>
                       <div className="flex-1 flex flex-col sm:flex-row gap-2">
-                        <Input
-                          type="number"
-                          value={editAmount}
-                          onChange={(ev) => setEditAmount(ev.target.value)}
-                          className="w-28"
-                          min={0}
-                        />
-                        <Input
-                          value={editDescription}
-                          onChange={(ev) => setEditDescription(ev.target.value)}
-                          placeholder="Descripción"
-                          className="flex-1"
-                        />
+                        <Input type="number" value={editAmount} onChange={(ev) => setEditAmount(ev.target.value)} className="w-28" min={0} />
+                        <Input value={editDescription} onChange={(ev) => setEditDescription(ev.target.value)} placeholder="Descripción" className="flex-1" />
                       </div>
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => saveEdit(e.id)}>
@@ -322,7 +342,7 @@ export default function Caja() {
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{e.description}</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(e.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(e.created_at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
                       </div>
