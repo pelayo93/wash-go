@@ -60,17 +60,20 @@ Deno.serve(async (req) => {
       if (roleError) throw roleError;
 
       return new Response(JSON.stringify({ success: true, userId: newUser.user.id }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "list") {
-      const { data: users, error } = await adminClient.auth.admin.listUsers();
-      if (error) throw error;
+      // Get all auth users
+      const { data: usersData, error: usersError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      if (usersError) throw usersError;
 
-      const { data: roles } = await adminClient.from("user_roles").select("*");
+      const { data: roles, error: rolesError } = await adminClient.from("user_roles").select("*");
+      if (rolesError) throw rolesError;
 
-      const result = users.users.map((u) => ({
+      const result = (usersData.users || []).map((u) => ({
         id: u.id,
         email: u.email,
         fullName: u.user_metadata?.full_name || "",
@@ -79,6 +82,7 @@ Deno.serve(async (req) => {
       }));
 
       return new Response(JSON.stringify(result), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -92,6 +96,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -105,14 +110,18 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     throw new Error("Acción no válida");
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
+    const errorMessage = err instanceof Error ? err.message : "Error desconocido";
+    const statusCode = errorMessage.includes("autorizado") || errorMessage.includes("No autorizado") ? 401 : 400;
+    
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: statusCode,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
