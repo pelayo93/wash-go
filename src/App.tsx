@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import Alquileres from "@/pages/Alquileres";
 import Caja from "@/pages/Caja";
 import Reportes from "@/pages/Reportes";
+import Usuarios from "@/pages/Usuarios";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 
@@ -58,6 +59,7 @@ function AppRoutes() {
             <Route path="/alquileres" element={<Alquileres />} />
             <Route path="/caja" element={<Caja />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/usuarios" element={<Usuarios />} />
           </>
         ) : (
           <>

@@ -5,6 +5,7 @@ import {
   WashingMachine,
   Wallet,
   BarChart3,
+  Users,
   Menu,
   X,
   LogOut,
@@ -17,6 +18,7 @@ const allNavItems = [
   { to: "/alquileres", label: "Alquileres", icon: WashingMachine, roles: ["admin", "entrega"] },
   { to: "/caja", label: "Caja", icon: Wallet, roles: ["admin"] },
   { to: "/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
+  { to: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
