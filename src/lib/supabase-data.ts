@@ -121,3 +121,55 @@ export async function isTodayClosed() {
     .maybeSingle();
   return !!data;
 }
+
+// ── Delivery People ──
+
+export async function fetchDeliveryPeople() {
+  const { data, error } = await supabase
+    .from("delivery_people")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertDeliveryPerson(person: {
+  name: string;
+  phone: string;
+  created_by: string;
+}) {
+  const { error } = await supabase.from("delivery_people").insert(person);
+  if (error) throw error;
+}
+
+export async function updateDeliveryPerson(id: string, updates: { name?: string; phone?: string; active?: boolean }) {
+  const { error } = await supabase.from("delivery_people").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteDeliveryPerson(id: string) {
+  const { error } = await supabase.from("delivery_people").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
+// ── Cash Audit Log ──
+
+export async function insertCashAuditLog(entry: {
+  action: string;
+  cash_entry_id?: string;
+  details: Record<string, any>;
+  performed_by: string;
+}) {
+  const { error } = await supabase.from("cash_audit_log").insert(entry);
+  if (error) throw error;
+}
+
+export async function fetchCashAuditLog() {
+  const { data, error } = await supabase
+    .from("cash_audit_log")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

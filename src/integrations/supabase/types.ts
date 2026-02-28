@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_audit_log: {
+        Row: {
+          action: string
+          cash_entry_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          cash_entry_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          cash_entry_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string | null
+        }
+        Relationships: []
+      }
       cash_entries: {
         Row: {
           amount: number
@@ -71,6 +98,33 @@ export type Database = {
           id?: string
           total_expense?: number
           total_income?: number
+        }
+        Relationships: []
+      }
+      delivery_people: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          phone?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          phone?: string
         }
         Relationships: []
       }
