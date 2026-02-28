@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  ArrowUpRight,
-  ArrowDownRight,
-  Plus,
-  Lock,
-  TrendingUp,
-  TrendingDown,
-  Pencil,
-  Trash2,
-  Check,
-  X,
+  ArrowUpRight, ArrowDownRight, Plus, Lock, TrendingUp, TrendingDown,
+  Pencil, Trash2, Check, X, ClipboardList,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,33 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCOP } from "@/lib/data";
 import {
-  fetchTodayCashEntries,
-  insertCashEntry,
-  updateCashEntry,
-  deleteCashEntry,
-  isTodayClosed,
-  insertDailyClose,
+  fetchTodayCashEntries, insertCashEntry, updateCashEntry, deleteCashEntry,
+  isTodayClosed, insertDailyClose, insertCashAuditLog, fetchCashAuditLog,
 } from "@/lib/supabase-data";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export default function Caja() {
@@ -53,6 +30,8 @@ export default function Caja() {
   const [entries, setEntries] = useState<any[]>([]);
   const [closed, setClosed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [showAudit, setShowAudit] = useState(false);
 
   // Form
   const [type, setType] = useState<"income" | "expense">("income");
@@ -66,20 +45,18 @@ export default function Caja() {
 
   const refresh = useCallback(async () => {
     try {
-      const [todayEntries, todayClosed] = await Promise.all([
-        fetchTodayCashEntries(),
-        isTodayClosed(),
-      ]);
+      const [todayEntries, todayClosed] = await Promise.all([fetchTodayCashEntries(), isTodayClosed()]);
       setEntries(todayEntries);
       setClosed(todayClosed);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  const loadAudit = async () => {
+    try { setAuditLog(await fetchCashAuditLog()); } catch (err) { console.error(err); }
+  };
 
   const summary = {
     income: entries.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0),
@@ -87,68 +64,57 @@ export default function Caja() {
     get balance() { return this.income - this.expense; },
   };
 
+  const logAudit = async (action: string, cashEntryId?: string, details: Record<string, any> = {}) => {
+    try {
+      await insertCashAuditLog({ action, cash_entry_id: cashEntryId, details, performed_by: user!.id });
+    } catch (err) { console.error("Audit log error:", err); }
+  };
+
   const handleAdd = async () => {
-    if (closed) {
-      toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" });
-      return;
-    }
+    if (closed) { toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" }); return; }
     const amt = Number(amount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Ingresa un monto válido", variant: "destructive" });
-      return;
-    }
+    if (!amt || amt <= 0) { toast({ title: "Ingresa un monto válido", variant: "destructive" }); return; }
     try {
       await insertCashEntry({
-        type,
-        amount: amt,
+        type, amount: amt,
         description: description || (type === "income" ? "Pago cliente" : "Gasto"),
         created_by: user!.id,
       });
+      await logAudit("create", undefined, { type, amount: amt, description: description || (type === "income" ? "Pago cliente" : "Gasto") });
       await refresh();
-      setAmount("");
-      setDescription("");
+      setAmount(""); setDescription("");
       toast({ title: type === "income" ? "Entrada registrada ✓" : "Salida registrada ✓" });
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
-    }
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, entry: any) => {
     try {
       await deleteCashEntry(id);
+      await logAudit("delete", id, { type: entry.type, amount: entry.amount, description: entry.description });
       await refresh();
       toast({ title: "Movimiento eliminado" });
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
-    }
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
   const startEdit = (entry: any) => {
-    setEditingId(entry.id);
-    setEditAmount(entry.amount.toString());
-    setEditDescription(entry.description);
+    setEditingId(entry.id); setEditAmount(entry.amount.toString()); setEditDescription(entry.description);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditAmount("");
-    setEditDescription("");
-  };
+  const cancelEdit = () => { setEditingId(null); setEditAmount(""); setEditDescription(""); };
 
-  const saveEdit = async (id: string) => {
+  const saveEdit = async (id: string, oldEntry: any) => {
     const amt = Number(editAmount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Monto inválido", variant: "destructive" });
-      return;
-    }
+    if (!amt || amt <= 0) { toast({ title: "Monto inválido", variant: "destructive" }); return; }
     try {
       await updateCashEntry(id, { amount: amt, description: editDescription });
+      await logAudit("update", id, {
+        old: { amount: oldEntry.amount, description: oldEntry.description },
+        new: { amount: amt, description: editDescription },
+      });
       await refresh();
       cancelEdit();
       toast({ title: "Movimiento actualizado ✓" });
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
-    }
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
   const handleClose = async () => {
@@ -156,22 +122,16 @@ export default function Caja() {
     try {
       const today = new Date().toISOString().split("T")[0];
       await insertDailyClose({
-        date: today,
-        total_income: summary.income,
-        total_expense: summary.expense,
-        balance: summary.balance,
-        closed_by: user!.id,
+        date: today, total_income: summary.income,
+        total_expense: summary.expense, balance: summary.balance, closed_by: user!.id,
       });
+      await logAudit("daily_close", undefined, { date: today, income: summary.income, expense: summary.expense, balance: summary.balance });
       await refresh();
       toast({ title: "Cierre de caja realizado ✓", description: "El resumen quedó guardado en Reportes." });
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
-    }
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
-  if (loading) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
-  }
+  if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -182,61 +142,88 @@ export default function Caja() {
             {new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Lock className="h-4 w-4 mr-1" /> Cierre de Caja
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cierre de Caja - Hoy</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="flex justify-between items-center p-3 rounded-lg bg-success/10">
-                <span className="text-sm font-medium">Total Entradas</span>
-                <span className="font-bold text-success">{formatCOP(summary.income)}</span>
+        <div className="flex gap-2">
+          <Dialog open={showAudit} onOpenChange={(v) => { setShowAudit(v); if (v) loadAudit(); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><ClipboardList className="h-4 w-4 mr-1" /> Auditoría</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Historial de Auditoría - Caja</DialogTitle></DialogHeader>
+              <div className="space-y-2">
+                {auditLog.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Sin registros</p>
+                ) : auditLog.map((log) => (
+                  <div key={log.id} className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium uppercase tracking-wide">
+                        {log.action === "create" && "✚ Creación"}
+                        {log.action === "update" && "✎ Edición"}
+                        {log.action === "delete" && "✕ Eliminación"}
+                        {log.action === "daily_close" && "🔒 Cierre"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(log.created_at).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {log.action === "create" && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
+                      {log.action === "update" && `De ${formatCOP(log.details.old?.amount)} → ${formatCOP(log.details.new?.amount)}`}
+                      {log.action === "delete" && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
+                      {log.action === "daily_close" && `Balance: ${formatCOP(log.details.balance)}`}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg bg-destructive/10">
-                <span className="text-sm font-medium">Total Salidas</span>
-                <span className="font-bold text-destructive">{formatCOP(summary.expense)}</span>
+              <DialogClose asChild><Button variant="outline" className="w-full">Cerrar</Button></DialogClose>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><Lock className="h-4 w-4 mr-1" /> Cierre de Caja</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Cierre de Caja - Hoy</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-success/10">
+                  <span className="text-sm font-medium">Total Entradas</span>
+                  <span className="font-bold text-success">{formatCOP(summary.income)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-destructive/10">
+                  <span className="text-sm font-medium">Total Salidas</span>
+                  <span className="font-bold text-destructive">{formatCOP(summary.expense)}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 rounded-lg bg-primary text-primary-foreground">
+                  <span className="font-medium">Saldo Neto</span>
+                  <span className="text-xl font-bold">{formatCOP(summary.balance)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">{entries.length} movimientos registrados hoy</p>
+                {closed ? (
+                  <p className="text-center text-sm font-medium text-success">✓ Caja cerrada hoy</p>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button className="w-full" variant="destructive" disabled={entries.length === 0}>
+                        <Lock className="h-4 w-4 mr-1" /> Confirmar Cierre de Caja
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Cerrar la caja de hoy?</AlertDialogTitle>
+                        <AlertDialogDescription>Se guardará el resumen del día en reportes. No podrás agregar, editar ni eliminar movimientos de hoy después del cierre.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClose}>Sí, cerrar caja</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
-              <div className="flex justify-between items-center p-4 rounded-lg bg-primary text-primary-foreground">
-                <span className="font-medium">Saldo Neto</span>
-                <span className="text-xl font-bold">{formatCOP(summary.balance)}</span>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                {entries.length} movimientos registrados hoy
-              </p>
-              {closed ? (
-                <p className="text-center text-sm font-medium text-success">✓ Caja cerrada hoy</p>
-              ) : (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button className="w-full" variant="destructive" disabled={entries.length === 0}>
-                      <Lock className="h-4 w-4 mr-1" /> Confirmar Cierre de Caja
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Cerrar la caja de hoy?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Se guardará el resumen del día en reportes. No podrás agregar, editar ni eliminar movimientos de hoy después del cierre.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClose}>Sí, cerrar caja</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
-            <DialogClose asChild>
-              <Button variant="outline" className="w-full">Cerrar</Button>
-            </DialogClose>
-          </DialogContent>
-        </Dialog>
+              <DialogClose asChild><Button variant="outline" className="w-full">Cerrar</Button></DialogClose>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {closed && (
@@ -323,7 +310,7 @@ export default function Caja() {
                         <Input value={editDescription} onChange={(ev) => setEditDescription(ev.target.value)} placeholder="Descripción" className="flex-1" />
                       </div>
                       <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => saveEdit(e.id)}>
+                        <Button size="icon" variant="ghost" onClick={() => saveEdit(e.id, e)}>
                           <Check className="h-4 w-4 text-success" />
                         </Button>
                         <Button size="icon" variant="ghost" onClick={cancelEdit}>
@@ -334,11 +321,7 @@ export default function Caja() {
                   ) : (
                     <>
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {e.type === "income" ? (
-                          <TrendingUp className="h-4 w-4 text-success shrink-0" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-destructive shrink-0" />
-                        )}
+                        {e.type === "income" ? <TrendingUp className="h-4 w-4 text-success shrink-0" /> : <TrendingDown className="h-4 w-4 text-destructive shrink-0" />}
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{e.description}</p>
                           <p className="text-xs text-muted-foreground">
@@ -370,7 +353,7 @@ export default function Caja() {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(e.id)}>Eliminar</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDelete(e.id, e)}>Eliminar</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>

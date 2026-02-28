@@ -1,38 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  WashingMachine,
-  Plus,
-  Phone,
-  MapPin,
-  User,
-  Check,
-  X,
-  Clock,
-  UserCheck,
+  WashingMachine, Plus, Phone, MapPin, User, Check, X, Clock, UserCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ZONES, EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
-import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import DeliveryPeopleManager from "@/components/DeliveryPeopleManager";
 
 export default function Alquileres() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
 
   // Form state
   const [clientName, setClientName] = useState("");
@@ -54,18 +44,15 @@ export default function Alquileres() {
   const floorSurcharge = floor === "3-4" ? PISO_EXTRA["3-4"] : floor === "5-6" ? PISO_EXTRA["5-6"] : 0;
   const total = basePrice + extraHours * EXTRA_HORA + floorSurcharge;
 
-  const loadRentals = useCallback(async () => {
-    try {
-      const data = await fetchRentals();
-      setRentals(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const loadDeliveryPeople = useCallback(async () => {
+    try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { loadRentals(); }, [loadRentals]);
+  const loadRentals = useCallback(async () => {
+    try { setRentals(await fetchRentals()); } catch (err) { console.error(err); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { loadRentals(); loadDeliveryPeople(); }, [loadRentals, loadDeliveryPeople]);
 
   const resetForm = () => {
     setClientName(""); setPhone(""); setAddress("");
@@ -83,28 +70,18 @@ export default function Alquileres() {
     }
     try {
       await insertRental({
-        client_name: clientName,
-        phone,
-        address,
-        zone: selectedZone,
-        service_type: serviceType,
-        price: basePrice,
-        extra_hours: extraHours,
-        floor_surcharge: floorSurcharge,
-        total,
-        floor_number: floorNumber,
-        delivered_by: deliveredBy,
-        picked_up_by: pickedUpBy,
-        entry_time: entryTime,
-        exit_time: exitTime,
-        created_by: user!.id,
+        client_name: clientName, phone, address,
+        zone: selectedZone, service_type: serviceType,
+        price: basePrice, extra_hours: extraHours,
+        floor_surcharge: floorSurcharge, total,
+        floor_number: floorNumber, delivered_by: deliveredBy,
+        picked_up_by: pickedUpBy, entry_time: entryTime,
+        exit_time: exitTime, created_by: user!.id,
       });
       await insertCashEntry({
-        type: "income",
-        amount: total,
+        type: "income", amount: total,
         description: `Alquiler ${serviceType} - ${clientName} (${selectedZone})`,
-        category: "alquiler",
-        created_by: user!.id,
+        category: "alquiler", created_by: user!.id,
       });
       await loadRentals();
       resetForm();
@@ -131,10 +108,12 @@ export default function Alquileres() {
           <h1 className="text-2xl font-bold tracking-tight">Alquileres</h1>
           <p className="text-sm text-muted-foreground">Gestión de servicios por zona</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nuevo Servicio
-        </Button>
+        <div className="flex gap-2">
+          {role === "admin" && <DeliveryPeopleManager onUpdate={loadDeliveryPeople} />}
+          <Button onClick={() => setShowForm(!showForm)} size="sm">
+            <Plus className="h-4 w-4 mr-1" /> Nuevo Servicio
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -161,9 +140,7 @@ export default function Alquileres() {
                 <Select value={selectedZone} onValueChange={(v) => { setSelectedZone(v); setServiceType(""); }}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar zona" /></SelectTrigger>
                   <SelectContent>
-                    {ZONES.map((z) => (
-                      <SelectItem key={z.name} value={z.name}>{z.name}</SelectItem>
-                    ))}
+                    {ZONES.map((z) => (<SelectItem key={z.name} value={z.name}>{z.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -172,9 +149,7 @@ export default function Alquileres() {
                 <Select value={serviceType} onValueChange={setServiceType} disabled={!selectedZone}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger>
                   <SelectContent>
-                    {serviceTypes.map((st) => (
-                      <SelectItem key={st} value={st}>{st} - {formatCOP(zone!.prices[st])}</SelectItem>
-                    ))}
+                    {serviceTypes.map((st) => (<SelectItem key={st} value={st}>{st} - {formatCOP(zone!.prices[st])}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -197,14 +172,31 @@ export default function Alquileres() {
                 <Label>Número de Piso</Label>
                 <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
               </div>
+
+              {/* Delivery person selects */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Entregó</Label>
-                <Input value={deliveredBy} onChange={(e) => setDeliveredBy(e.target.value)} placeholder="Nombre de quien entregó" />
+                <Select value={deliveredBy} onValueChange={setDeliveredBy}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
+                  <SelectContent>
+                    {deliveryPeople.map((p) => (
+                      <SelectItem key={p.id} value={p.name}>{p.name} {p.phone && `(${p.phone})`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
-                <Input value={pickedUpBy} onChange={(e) => setPickedUpBy(e.target.value)} placeholder="Nombre de quien retiró" />
+                <Select value={pickedUpBy} onValueChange={setPickedUpBy}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
+                  <SelectContent>
+                    {deliveryPeople.map((p) => (
+                      <SelectItem key={p.id} value={p.name}>{p.name} {p.phone && `(${p.phone})`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Entrada</Label>
                 <Input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} />
@@ -262,9 +254,7 @@ export default function Alquileres() {
           {loading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>
           ) : rentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              No hay alquileres registrados
-            </p>
+            <p className="text-sm text-muted-foreground py-8 text-center">No hay alquileres registrados</p>
           ) : (
             <div className="space-y-3">
               {rentals.map((r) => (
