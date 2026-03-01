@@ -31,6 +31,7 @@ export default function Alquileres() {
   // Complete dialog state
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [completePickedUpBy, setCompletePickedUpBy] = useState("");
+  const [completeExitTime, setCompleteExitTime] = useState("");
 
   // Form state
   const [clientName, setClientName] = useState("");
@@ -111,9 +112,10 @@ export default function Alquileres() {
   const completeRental = async () => {
     if (!completingId) return;
     try {
-      await updateRentalStatus(completingId, "completed", completePickedUpBy);
+      await updateRentalStatus(completingId, "completed", completePickedUpBy, completeExitTime);
       setCompletingId(null);
       setCompletePickedUpBy("");
+      setCompleteExitTime("");
       toast({ title: "Alquiler completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
@@ -208,10 +210,6 @@ export default function Alquileres() {
                 <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Entrada</Label>
                 <Input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Salida</Label>
-                <Input type="time" value={exitTime} onChange={(e) => setExitTime(e.target.value)} />
-              </div>
             </div>
 
             {basePrice > 0 && (
@@ -250,7 +248,7 @@ export default function Alquileres() {
       )}
 
       {/* Complete rental dialog */}
-      <Dialog open={!!completingId} onOpenChange={(open) => { if (!open) { setCompletingId(null); setCompletePickedUpBy(""); } }}>
+      <Dialog open={!!completingId} onOpenChange={(open) => { if (!open) { setCompletingId(null); setCompletePickedUpBy(""); setCompleteExitTime(""); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
@@ -264,6 +262,10 @@ export default function Alquileres() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Salida</Label>
+              <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
             <div className="flex gap-2 justify-end">
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
