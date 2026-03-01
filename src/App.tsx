@@ -18,7 +18,11 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, role, loading } = useAuth();
 
-  if (loading) {
+  // we keep showing the loading indicator until the auth provider has
+  // resolved both the session *and* the role. by treating `role` as
+  // `undefined` while the query is pending we avoid the flash of
+  // "Cuenta sin rol asignado" that happens today.
+  if (loading || role === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Cargando...</p>
@@ -34,14 +38,16 @@ function AppRoutes() {
     );
   }
 
-  // No role assigned yet
-  if (!role) {
+  // At this point we have a user and `role` is either a valid value or
+  // `null` to indicate there really is no role assigned.
+  if (role === null) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 text-center">
         <div>
           <p className="text-lg font-medium">Cuenta sin rol asignado</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Contacta al administrador para que te asigne un rol (admin o entrega).
+            Contacta al administrador para que te asigne un rol (admin o
+            entrega).
           </p>
         </div>
       </div>
