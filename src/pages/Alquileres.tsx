@@ -9,9 +9,13 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ZONES, EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
 import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import DeliveryPeopleManager from "@/components/DeliveryPeopleManager";
@@ -24,6 +28,10 @@ export default function Alquileres() {
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
 
+  // Complete dialog state
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completePickedUpBy, setCompletePickedUpBy] = useState("");
+
   // Form state
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
@@ -34,7 +42,6 @@ export default function Alquileres() {
   const [floor, setFloor] = useState("1-2");
   const [floorNumber, setFloorNumber] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
-  const [pickedUpBy, setPickedUpBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
   const [exitTime, setExitTime] = useState("");
 
@@ -54,11 +61,22 @@ export default function Alquileres() {
 
   useEffect(() => { loadRentals(); loadDeliveryPeople(); }, [loadRentals, loadDeliveryPeople]);
 
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("rentals-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rentals" }, () => {
+        loadRentals();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [loadRentals]);
+
   const resetForm = () => {
     setClientName(""); setPhone(""); setAddress("");
     setSelectedZone(""); setServiceType("");
     setExtraHours(0); setFloor("1-2"); setFloorNumber("");
-    setDeliveredBy(""); setPickedUpBy("");
+    setDeliveredBy("");
     setEntryTime(""); setExitTime("");
     setShowForm(false);
   };
@@ -75,7 +93,7 @@ export default function Alquileres() {
         price: basePrice, extra_hours: extraHours,
         floor_surcharge: floorSurcharge, total,
         floor_number: floorNumber, delivered_by: deliveredBy,
-        picked_up_by: pickedUpBy, entry_time: entryTime,
+        picked_up_by: "", entry_time: entryTime,
         exit_time: exitTime, created_by: user!.id,
       });
       await insertCashEntry({
@@ -83,7 +101,6 @@ export default function Alquileres() {
         description: `Alquiler ${serviceType} - ${clientName} (${selectedZone})`,
         category: "alquiler", created_by: user!.id,
       });
-      await loadRentals();
       resetForm();
       toast({ title: "Alquiler registrado ✓" });
     } catch (err: any) {
@@ -91,10 +108,12 @@ export default function Alquileres() {
     }
   };
 
-  const completeRental = async (id: string) => {
+  const completeRental = async () => {
+    if (!completingId) return;
     try {
-      await updateRentalStatus(id, "completed");
-      await loadRentals();
+      await updateRentalStatus(completingId, "completed", completePickedUpBy);
+      setCompletingId(null);
+      setCompletePickedUpBy("");
       toast({ title: "Alquiler completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
@@ -173,21 +192,9 @@ export default function Alquileres() {
                 <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
               </div>
 
-              {/* Delivery person selects */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Entregó</Label>
                 <Select value={deliveredBy} onValueChange={setDeliveredBy}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
-                  <SelectContent>
-                    {deliveryPeople.map((p) => (
-                      <SelectItem key={p.id} value={p.name}>{p.name} {p.phone && `(${p.phone})`}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
-                <Select value={pickedUpBy} onValueChange={setPickedUpBy}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
                   <SelectContent>
                     {deliveryPeople.map((p) => (
@@ -242,6 +249,32 @@ export default function Alquileres() {
         </Card>
       )}
 
+      {/* Complete rental dialog */}
+      <Dialog open={!!completingId} onOpenChange={(open) => { if (!open) { setCompletingId(null); setCompletePickedUpBy(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
+              <Select value={completePickedUpBy} onValueChange={setCompletePickedUpBy}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
+                <SelectContent>
+                  {deliveryPeople.map((p) => (
+                    <SelectItem key={p.id} value={p.name}>{p.name} {p.phone && `(${p.phone})`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+              <Button onClick={completeRental}>
+                <Check className="h-4 w-4 mr-1" /> Completar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Rental list */}
       <Card>
         <CardHeader className="pb-3">
@@ -279,7 +312,7 @@ export default function Alquileres() {
                   <div className="flex items-center gap-3">
                     <span className="font-semibold text-sm">{formatCOP(r.total)}</span>
                     {r.status === "active" && (
-                      <Button size="sm" variant="outline" onClick={() => completeRental(r.id)}>
+                      <Button size="sm" variant="outline" onClick={() => setCompletingId(r.id)}>
                         <Check className="h-3.5 w-3.5 mr-1" /> Completar
                       </Button>
                     )}

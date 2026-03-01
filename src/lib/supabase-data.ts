@@ -32,10 +32,12 @@ export async function insertRental(rental: {
   if (error) throw error;
 }
 
-export async function updateRentalStatus(id: string, status: string) {
+export async function updateRentalStatus(id: string, status: string, pickedUpBy?: string) {
+  const updates: Record<string, any> = { status };
+  if (pickedUpBy !== undefined) updates.picked_up_by = pickedUpBy;
   const { error } = await supabase
     .from("rentals")
-    .update({ status })
+    .update(updates)
     .eq("id", id);
   if (error) throw error;
 }

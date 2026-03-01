@@ -1,6 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
-import { formatCOP } from "@/lib/data";
+import autoTable from "jspdf-autotable";
 
 // CSV export
 export function exportToCSV(filename: string, headers: string[], rows: string[][]) {
@@ -40,7 +39,7 @@ export function exportToPDF(
     startY += summary.length * 7 + 5;
   }
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     head: [headers],
     body: rows,
     startY,
