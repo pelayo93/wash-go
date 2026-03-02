@@ -16,7 +16,7 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, error } = useAuth();
 
   // we keep showing the loading indicator until the auth provider has
   // resolved both the session *and* the role. by treating `role` as
@@ -26,6 +26,20 @@ function AppRoutes() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 text-center">
+        <div>
+          <p className="text-lg font-medium text-destructive">{error}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Intenta recargar la página o borra las cookies si el problema
+            persiste.
+          </p>
+        </div>
       </div>
     );
   }
