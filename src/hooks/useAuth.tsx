@@ -55,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const readCachedRole = (userId: string | undefined): AppRole | null | undefined => {
+  const readCachedRole = (
+    userId: string | undefined,
+  ): AppRole | null | undefined => {
     if (!userId) return undefined;
     try {
       const v = localStorage.getItem(ROLE_CACHE_PREFIX + userId);
@@ -118,14 +120,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // try JWT metadata first
         const metaRole = session.user.app_metadata?.role as AppRole | undefined;
         if (metaRole !== undefined) {
-          console.debug("using role from JWT metadata", { user: session.user.id, role: metaRole });
+          console.debug("using role from JWT metadata", {
+            user: session.user.id,
+            role: metaRole,
+          });
           setRole(metaRole);
           cacheRole(session.user.id, metaRole);
         } else {
           // read cached role to avoid spinner while we refresh in background
           const cached = readCachedRole(session.user.id);
           if (cached !== undefined) {
-            console.debug("using cached role", { user: session.user.id, role: cached });
+            console.debug("using cached role", {
+              user: session.user.id,
+              role: cached,
+            });
             setRole(cached);
           } else {
             // unknown until fetch completes
@@ -133,7 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // refresh in background, don't await to avoid blocking UI
-          fetchRole(session.user.id).catch((e) => console.debug("background fetchRole error", e));
+          fetchRole(session.user.id).catch((e) =>
+            console.debug("background fetchRole error", e),
+          );
         }
       } else {
         setRole(null);
