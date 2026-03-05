@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  WashingMachine, Plus, Phone, MapPin, User, Check, X, Clock, UserCheck,
+  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,28 +29,29 @@ export default function Alquileres() {
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
 
   // Complete dialog state
-  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completingRental, setCompletingRental] = useState<any | null>(null);
   const [completePickedUpBy, setCompletePickedUpBy] = useState("");
   const [completeExitTime, setCompleteExitTime] = useState("");
+  const [completeZone, setCompleteZone] = useState("");
+  const [completeServiceType, setCompleteServiceType] = useState("");
+  const [completeExtraHours, setCompleteExtraHours] = useState(0);
+  const [completeFloor, setCompleteFloor] = useState("1-2");
 
-  // Form state
+  // Form state (simplified - no pricing fields)
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
-  const [serviceType, setServiceType] = useState("");
-  const [extraHours, setExtraHours] = useState(0);
-  const [floor, setFloor] = useState("1-2");
   const [floorNumber, setFloorNumber] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
-  const [exitTime, setExitTime] = useState("");
 
-  const zone = ZONES.find((z) => z.name === selectedZone);
-  const serviceTypes = zone ? Object.keys(zone.prices) : [];
-  const basePrice = zone && serviceType ? zone.prices[serviceType] || 0 : 0;
-  const floorSurcharge = floor === "3-4" ? PISO_EXTRA["3-4"] : floor === "5-6" ? PISO_EXTRA["5-6"] : 0;
-  const total = basePrice + extraHours * EXTRA_HORA + floorSurcharge;
+  // Complete dialog pricing
+  const completeZoneObj = ZONES.find((z) => z.name === completeZone);
+  const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
+  const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
+  const completeFloorSurcharge = completeFloor === "3-4" ? PISO_EXTRA["3-4"] : completeFloor === "5-6" ? PISO_EXTRA["5-6"] : 0;
+  const completeTotal = completeBasePrice + completeExtraHours * EXTRA_HORA + completeFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
     try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
@@ -62,7 +63,6 @@ export default function Alquileres() {
 
   useEffect(() => { loadRentals(); loadDeliveryPeople(); }, [loadRentals, loadDeliveryPeople]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("rentals-realtime")
@@ -75,47 +75,75 @@ export default function Alquileres() {
 
   const resetForm = () => {
     setClientName(""); setPhone(""); setAddress("");
-    setSelectedZone(""); setServiceType("");
-    setExtraHours(0); setFloor("1-2"); setFloorNumber("");
-    setDeliveredBy("");
-    setEntryTime(""); setExitTime("");
+    setSelectedZone(""); setFloorNumber("");
+    setDeliveredBy(""); setEntryTime("");
     setShowForm(false);
   };
 
+  const openCompleteDialog = (rental: any) => {
+    setCompletingRental(rental);
+    setCompleteZone(rental.zone || "");
+    setCompleteServiceType("");
+    setCompleteExtraHours(0);
+    setCompleteFloor("1-2");
+    setCompletePickedUpBy("");
+    setCompleteExitTime("");
+  };
+
+  const closeCompleteDialog = () => {
+    setCompletingRental(null);
+    setCompletePickedUpBy("");
+    setCompleteExitTime("");
+    setCompleteZone("");
+    setCompleteServiceType("");
+    setCompleteExtraHours(0);
+    setCompleteFloor("1-2");
+  };
+
   const handleSubmit = async () => {
-    if (!clientName || !phone || !address || !selectedZone || !serviceType) {
+    if (!clientName || !phone || !address || !selectedZone) {
       toast({ title: "Completa todos los campos", variant: "destructive" });
       return;
     }
     try {
       await insertRental({
         client_name: clientName, phone, address,
-        zone: selectedZone, service_type: serviceType,
-        price: basePrice, extra_hours: extraHours,
-        floor_surcharge: floorSurcharge, total,
+        zone: selectedZone, service_type: "",
+        price: 0, extra_hours: 0,
+        floor_surcharge: 0, total: 0,
         floor_number: floorNumber, delivered_by: deliveredBy,
         picked_up_by: "", entry_time: entryTime,
-        exit_time: exitTime, created_by: user!.id,
-      });
-      await insertCashEntry({
-        type: "income", amount: total,
-        description: `Alquiler ${serviceType} - ${clientName} (${selectedZone})`,
-        category: "alquiler", created_by: user!.id,
+        exit_time: "", created_by: user!.id,
       });
       resetForm();
-      toast({ title: "Alquiler registrado ✓" });
+      toast({ title: "Pedido registrado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error al registrar", variant: "destructive" });
     }
   };
 
   const completeRental = async () => {
-    if (!completingId) return;
+    if (!completingRental || !completeServiceType) {
+      toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
+      return;
+    }
     try {
-      await updateRentalStatus(completingId, "completed", completePickedUpBy, completeExitTime);
-      setCompletingId(null);
-      setCompletePickedUpBy("");
-      setCompleteExitTime("");
+      await updateRentalStatus(completingRental.id, "completed", {
+        pickedUpBy: completePickedUpBy,
+        exitTime: completeExitTime,
+        serviceType: completeServiceType,
+        price: completeBasePrice,
+        extraHours: completeExtraHours,
+        floorSurcharge: completeFloorSurcharge,
+        total: completeTotal,
+        floor: completeFloor,
+      });
+      await insertCashEntry({
+        type: "income", amount: completeTotal,
+        description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})`,
+        category: "alquiler", created_by: user!.id,
+      });
+      closeCompleteDialog();
       toast({ title: "Alquiler completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
@@ -132,7 +160,7 @@ export default function Alquileres() {
         <div className="flex gap-2">
           {role === "admin" && <DeliveryPeopleManager onUpdate={loadDeliveryPeople} />}
           <Button onClick={() => setShowForm(!showForm)} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Nuevo Servicio
+            <Plus className="h-4 w-4 mr-1" /> Nuevo Pedido
           </Button>
         </div>
       </div>
@@ -140,7 +168,7 @@ export default function Alquileres() {
       {showForm && (
         <Card className="card-highlight">
           <CardHeader className="pb-3">
-            <CardTitle className="section-title">Registrar Servicio</CardTitle>
+            <CardTitle className="section-title">Registrar Pedido</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -158,7 +186,7 @@ export default function Alquileres() {
               </div>
               <div className="space-y-2">
                 <Label>Zona</Label>
-                <Select value={selectedZone} onValueChange={(v) => { setSelectedZone(v); setServiceType(""); }}>
+                <Select value={selectedZone} onValueChange={setSelectedZone}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar zona" /></SelectTrigger>
                   <SelectContent>
                     {ZONES.map((z) => (<SelectItem key={z.name} value={z.name}>{z.name}</SelectItem>))}
@@ -166,34 +194,9 @@ export default function Alquileres() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tipo de Servicio</Label>
-                <Select value={serviceType} onValueChange={setServiceType} disabled={!selectedZone}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger>
-                  <SelectContent>
-                    {serviceTypes.map((st) => (<SelectItem key={st} value={st}>{st} - {formatCOP(zone!.prices[st])}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Horas Extras ({formatCOP(EXTRA_HORA)}/h)</Label>
-                <Input type="number" min={0} value={extraHours} onChange={(e) => setExtraHours(Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Piso</Label>
-                <Select value={floor} onValueChange={setFloor}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
-                    <SelectItem value="3-4">3° - 4° (+{formatCOP(PISO_EXTRA["3-4"])})</SelectItem>
-                    <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Número de Piso</Label>
                 <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
               </div>
-
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Entregó</Label>
                 <Select value={deliveredBy} onValueChange={setDeliveredBy}>
@@ -205,37 +208,11 @@ export default function Alquileres() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Entrada</Label>
                 <Input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} />
               </div>
             </div>
-
-            {basePrice > 0 && (
-              <div className="rounded-lg bg-secondary p-4 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Base ({serviceType})</span>
-                  <span>{formatCOP(basePrice)}</span>
-                </div>
-                {extraHours > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{extraHours} hora(s) extra</span>
-                    <span>{formatCOP(extraHours * EXTRA_HORA)}</span>
-                  </div>
-                )}
-                {floorSurcharge > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Recargo piso</span>
-                    <span>{formatCOP(floorSurcharge)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
-                  <span>Total</span>
-                  <span className="text-primary">{formatCOP(total)}</span>
-                </div>
-              </div>
-            )}
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
@@ -248,10 +225,41 @@ export default function Alquileres() {
       )}
 
       {/* Complete rental dialog */}
-      <Dialog open={!!completingId} onOpenChange={(open) => { if (!open) { setCompletingId(null); setCompletePickedUpBy(""); setCompleteExitTime(""); } }}>
-        <DialogContent>
+      <Dialog open={!!completingRental} onOpenChange={(open) => { if (!open) closeCompleteDialog(); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {completingRental && (
+              <p className="text-sm text-muted-foreground">
+                Cliente: <span className="font-medium text-foreground">{completingRental.client_name}</span> • {completingRental.zone}
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label>Tipo de Servicio</Label>
+              <Select value={completeServiceType} onValueChange={setCompleteServiceType}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger>
+                <SelectContent>
+                  {completeServiceTypes.map((st) => (
+                    <SelectItem key={st} value={st}>{st} - {formatCOP(completeZoneObj!.prices[st])}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Horas Extras ({formatCOP(EXTRA_HORA)}/h)</Label>
+              <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Piso</Label>
+              <Select value={completeFloor} onValueChange={setCompleteFloor}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
+                  <SelectItem value="3-4">3° - 4° (+{formatCOP(PISO_EXTRA["3-4"])})</SelectItem>
+                  <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
               <Select value={completePickedUpBy} onValueChange={setCompletePickedUpBy}>
@@ -267,6 +275,32 @@ export default function Alquileres() {
               <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Hora de Salida</Label>
               <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
+
+            {completeBasePrice > 0 && (
+              <div className="rounded-lg bg-secondary p-4 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Base ({completeServiceType})</span>
+                  <span>{formatCOP(completeBasePrice)}</span>
+                </div>
+                {completeExtraHours > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{completeExtraHours} hora(s) extra</span>
+                    <span>{formatCOP(completeExtraHours * EXTRA_HORA)}</span>
+                  </div>
+                )}
+                {completeFloorSurcharge > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Recargo piso</span>
+                    <span>{formatCOP(completeFloorSurcharge)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
+                  <span>Total</span>
+                  <span className="text-primary">{formatCOP(completeTotal)}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-end">
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
               <Button onClick={completeRental}>
@@ -302,7 +336,7 @@ export default function Alquileres() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {r.zone} • {r.service_type} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}
+                      {r.zone} {r.service_type && `• ${r.service_type}`} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.delivered_by && `Entregó: ${r.delivered_by}`}{r.picked_up_by && ` • Retiró: ${r.picked_up_by}`}
@@ -312,9 +346,9 @@ export default function Alquileres() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-sm">{formatCOP(r.total)}</span>
+                    {r.total > 0 && <span className="font-semibold text-sm">{formatCOP(r.total)}</span>}
                     {r.status === "active" && (
-                      <Button size="sm" variant="outline" onClick={() => setCompletingId(r.id)}>
+                      <Button size="sm" variant="outline" onClick={() => openCompleteDialog(r)}>
                         <Check className="h-3.5 w-3.5 mr-1" /> Completar
                       </Button>
                     )}
