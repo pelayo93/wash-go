@@ -103,6 +103,11 @@ export default function Alquileres() {
     setCompleteFloor("1-2");
     setCompletePickedUpBy("");
     setCompleteExitTime("");
+    setCompletePaymentMethod("");
+    setCompletePaymentSplit(false);
+    setCompleteCashAmount(0);
+    setCompleteTransferAmount(0);
+    setCompletePaymentPending(false);
   };
 
   const closeCompleteDialog = () => {
@@ -113,6 +118,11 @@ export default function Alquileres() {
     setCompleteServiceType("");
     setCompleteExtraHours(0);
     setCompleteFloor("1-2");
+    setCompletePaymentMethod("");
+    setCompletePaymentSplit(false);
+    setCompleteCashAmount(0);
+    setCompleteTransferAmount(0);
+    setCompletePaymentPending(false);
   };
 
   const handleSubmit = async () => {
