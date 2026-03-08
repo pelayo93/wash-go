@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { formatCOP } from "@/lib/data";
 import { fetchCashEntries, fetchDailyCloses, fetchRentals } from "@/lib/supabase-data";
 import { exportToCSV, exportToPDF } from "@/lib/exportUtils";
@@ -14,6 +16,7 @@ export default function Reportes() {
   const [dailyCloses, setDailyCloses] = useState<any[]>([]);
   const [allRentals, setAllRentals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
@@ -93,6 +96,20 @@ export default function Reportes() {
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
 
+  // Rentals for selected person
+  const personRentals = useMemo(() => {
+    if (!selectedPerson) return [];
+    return filteredRentals.filter(
+      (r) => r.delivered_by === selectedPerson || r.picked_up_by === selectedPerson
+    );
+  }, [filteredRentals, selectedPerson]);
+
+  const personSummary = useMemo(() => {
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, total: 0 };
+    const data = byPerson.find(([name]) => name === selectedPerson);
+    return data ? data[1] : { deliveries: 0, pickups: 0, total: 0 };
+  }, [byPerson, selectedPerson]);
+
   const handleExportFinancialCSV = () => {
     exportToCSV("reporte_financiero", ["Fecha", "Ingresos", "Egresos", "Balance", "Estado"],
       byDate.map(([date, d]) => [date, formatCOP(d.income), formatCOP(d.expense), formatCOP(d.income - d.expense), d.closed ? "Cerrado" : "Abierto"]));
@@ -114,6 +131,33 @@ export default function Reportes() {
     exportToPDF("Reporte por Zona", "reporte_zonas",
       ["Zona", "Servicios", "Total"],
       byZone.map(([zone, d]) => [zone, d.count.toString(), formatCOP(d.total)]));
+  };
+
+  const handleExportPersonCSV = () => {
+    if (!selectedPerson) return;
+    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      personRentals.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"),
+        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      ]));
+  };
+
+  const handleExportPersonPDF = () => {
+    if (!selectedPerson) return;
+    exportToPDF(`Cierre Repartidor: ${selectedPerson}`, `cierre_${selectedPerson}`,
+      ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      personRentals.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"),
+        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      ]),
+      [
+        { label: "Repartidor", value: selectedPerson },
+        { label: "Entregas", value: personSummary.deliveries.toString() },
+        { label: "Retiros", value: personSummary.pickups.toString() },
+        { label: "Total", value: formatCOP(personSummary.total) },
+      ]);
   };
 
   if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
@@ -272,7 +316,7 @@ export default function Reportes() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="section-title flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" /> Rendimiento por Repartidor
+                <UserCheck className="h-5 w-5 text-primary" /> Rendimiento por Repartidor
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -288,7 +332,12 @@ export default function Reportes() {
                           {data.deliveries} entregas • {data.pickups} retiros
                         </p>
                       </div>
-                      <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedPerson(name)}>
+                          <Eye className="h-3.5 w-3.5 mr-1" /> Cierre
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -297,6 +346,80 @@ export default function Reportes() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delivery person close dialog */}
+      <Dialog open={!!selectedPerson} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" /> Cierre de Repartidor
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPerson && (
+            <div className="space-y-4 py-2">
+              {/* Summary */}
+              <div className="rounded-lg bg-secondary p-4 space-y-2">
+                <p className="font-semibold text-base">{selectedPerson}</p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Entregas</p>
+                    <p className="text-lg font-bold">{personSummary.deliveries}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Retiros</p>
+                    <p className="text-lg font-bold">{personSummary.pickups}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail list */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Detalle de servicios</p>
+                {personRentals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Sin servicios en este rango</p>
+                ) : (
+                  personRentals.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{r.client_name}</p>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {r.delivered_by === selectedPerson ? "Entrega" : "Retiro"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {r.zone} {r.service_type && `• ${r.service_type}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("es-CO")}
+                        </p>
+                      </div>
+                      <span className="font-semibold text-sm whitespace-nowrap">{formatCOP(r.total)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Export buttons */}
+              <div className="flex gap-2 justify-end pt-2 border-t border-border">
+                <Button size="sm" variant="outline" onClick={handleExportPersonCSV}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleExportPersonPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                </Button>
+                <DialogClose asChild>
+                  <Button size="sm">Cerrar</Button>
+                </DialogClose>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
