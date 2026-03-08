@@ -28,6 +28,7 @@ export default function Alquileres() {
   const { user, role } = useAuth();
   const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
