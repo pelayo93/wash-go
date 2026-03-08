@@ -186,6 +186,26 @@ export default function Reportes() {
       byZone.map(([zone, d]) => [zone, d.count.toString(), formatCOP(d.total)]));
   };
 
+  const handleExportZoneDetailCSV = () => {
+    if (!selectedZone) return;
+    exportToCSV(`reporte_zona_${selectedZone}`, ["Cliente", "Servicio", "Repartidor", "Total", "Fecha", "Estado"],
+      zoneRentals.map((r) => [
+        r.client_name, r.service_type || "-", r.delivered_by || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"), r.status === "active" ? "Activo" : "Completado",
+      ]));
+  };
+
+  const handleExportZoneDetailPDF = () => {
+    if (!selectedZone) return;
+    exportToPDF(`Detalle Zona: ${selectedZone}`, `reporte_zona_${selectedZone}`,
+      ["Cliente", "Servicio", "Repartidor", "Total", "Fecha", "Estado"],
+      zoneRentals.map((r) => [
+        r.client_name, r.service_type || "-", r.delivered_by || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"), r.status === "active" ? "Activo" : "Completado",
+      ]),
+      [{ label: "Zona", value: selectedZone }, { label: "Servicios", value: zoneSummary.count.toString() }, { label: "Total", value: formatCOP(zoneSummary.total) }]);
+  };
+
   const totalDeliveries = byPerson.reduce((s, [, d]) => s + d.deliveries, 0);
   const totalPickups = byPerson.reduce((s, [, d]) => s + d.pickups, 0);
   const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
