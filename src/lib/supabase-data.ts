@@ -44,6 +44,11 @@ export async function updateRentalStatus(
     floorSurcharge?: number;
     total?: number;
     floor?: string;
+    paymentMethod?: string;
+    paymentSplit?: boolean;
+    paymentCashAmount?: number;
+    paymentTransferAmount?: number;
+    paymentPending?: boolean;
   }
 ) {
   const updates: Record<string, any> = { status };
@@ -55,6 +60,11 @@ export async function updateRentalStatus(
   if (extras?.floorSurcharge !== undefined) updates.floor_surcharge = extras.floorSurcharge;
   if (extras?.total !== undefined) updates.total = extras.total;
   if (extras?.floor) updates.floor_number = extras.floor;
+  if (extras?.paymentMethod !== undefined) updates.payment_method = extras.paymentMethod;
+  if (extras?.paymentSplit !== undefined) updates.payment_split = extras.paymentSplit;
+  if (extras?.paymentCashAmount !== undefined) updates.payment_cash_amount = extras.paymentCashAmount;
+  if (extras?.paymentTransferAmount !== undefined) updates.payment_transfer_amount = extras.paymentTransferAmount;
+  if (extras?.paymentPending !== undefined) updates.payment_pending = extras.paymentPending;
   const { error } = await supabase
     .from("rentals")
     .update(updates)
