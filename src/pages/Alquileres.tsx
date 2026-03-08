@@ -250,7 +250,7 @@ export default function Alquileres() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Horas Extras ({formatCOP(EXTRA_HORA)}/h)</Label>
+              <Label>Horas Extras ({formatCOP(surcharges.extraHora)}/h)</Label>
               <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
             </div>
             <div className="space-y-2">
