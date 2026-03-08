@@ -488,7 +488,8 @@ export default function Alquileres() {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
