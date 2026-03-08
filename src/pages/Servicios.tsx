@@ -37,6 +37,10 @@ export default function Servicios() {
   const [editPiso34, setEditPiso34] = useState("");
   const [editPiso56, setEditPiso56] = useState("");
 
+  // Payment methods
+  const [pmList, setPmList] = useState<any[]>([]);
+  const [newPmName, setNewPmName] = useState("");
+
   // New zone
   const [newZoneName, setNewZoneName] = useState("");
 
