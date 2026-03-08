@@ -289,7 +289,7 @@ export default function Alquileres() {
                 {completeExtraHours > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{completeExtraHours} hora(s) extra</span>
-                    <span>{formatCOP(completeExtraHours * EXTRA_HORA)}</span>
+                    <span>{formatCOP(completeExtraHours * surcharges.extraHora)}</span>
                   </div>
                 )}
                 {completeFloorSurcharge > 0 && (
