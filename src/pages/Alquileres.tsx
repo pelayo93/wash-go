@@ -41,6 +41,12 @@ export default function Alquileres() {
   const [completeServiceType, setCompleteServiceType] = useState("");
   const [completeExtraHours, setCompleteExtraHours] = useState(0);
   const [completeFloor, setCompleteFloor] = useState("1-2");
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [completePaymentMethod, setCompletePaymentMethod] = useState("");
+  const [completePaymentSplit, setCompletePaymentSplit] = useState(false);
+  const [completeCashAmount, setCompleteCashAmount] = useState(0);
+  const [completeTransferAmount, setCompleteTransferAmount] = useState(0);
+  const [completePaymentPending, setCompletePaymentPending] = useState(false);
 
   // Form state (simplified - no pricing fields)
   const [clientName, setClientName] = useState("");
