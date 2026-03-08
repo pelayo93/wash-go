@@ -99,9 +99,9 @@ export default function Reportes() {
 
   // Services breakdown per person: { personName: [{ zone, serviceType, total, clientName, date }] }
   const personServices = useMemo(() => {
-    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string }[]> = {};
+    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string; role: string }[]> = {};
     filteredRentals.forEach((r) => {
-      const entry = {
+      const base = {
         zone: r.zone,
         service_type: r.service_type || "-",
         total: r.total,
@@ -110,7 +110,11 @@ export default function Reportes() {
       };
       if (r.delivered_by) {
         if (!map[r.delivered_by]) map[r.delivered_by] = [];
-        map[r.delivered_by].push({ ...entry });
+        map[r.delivered_by].push({ ...base, role: "Entrega" });
+      }
+      if (r.picked_up_by) {
+        if (!map[r.picked_up_by]) map[r.picked_up_by] = [];
+        map[r.picked_up_by].push({ ...base, role: "Retiro" });
       }
     });
     return map;
