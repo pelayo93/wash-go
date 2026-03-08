@@ -259,8 +259,8 @@ export default function Alquileres() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
-                  <SelectItem value="3-4">3° - 4° (+{formatCOP(PISO_EXTRA["3-4"])})</SelectItem>
-                  <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
+                  <SelectItem value="3-4">3° - 4° (+{formatCOP(surcharges.piso34)})</SelectItem>
+                  <SelectItem value="5-6">5° - 6° (+{formatCOP(surcharges.piso56)})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
