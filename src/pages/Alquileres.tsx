@@ -317,7 +317,63 @@ export default function Alquileres() {
               <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
 
-            {completeBasePrice > 0 && (
+            {/* Payment method */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="paymentPending"
+                  checked={completePaymentPending}
+                  onCheckedChange={(v) => {
+                    setCompletePaymentPending(!!v);
+                    if (v) { setCompletePaymentSplit(false); setCompletePaymentMethod(""); }
+                  }}
+                />
+                <label htmlFor="paymentPending" className="text-sm text-muted-foreground cursor-pointer">Pago pendiente</label>
+              </div>
+              {!completePaymentPending && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="paymentSplit"
+                      checked={completePaymentSplit}
+                      onCheckedChange={(v) => {
+                        setCompletePaymentSplit(!!v);
+                        if (v) { setCompletePaymentMethod(""); }
+                      }}
+                    />
+                    <label htmlFor="paymentSplit" className="text-sm text-muted-foreground cursor-pointer">Pago dividido (efectivo + transferencia)</label>
+                  </div>
+                  {completePaymentSplit ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Efectivo</Label>
+                        <Input type="number" min={0} value={completeCashAmount} onChange={(e) => setCompleteCashAmount(Number(e.target.value))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Transferencia</Label>
+                        <Input type="number" min={0} value={completeTransferAmount} onChange={(e) => setCompleteTransferAmount(Number(e.target.value))} />
+                      </div>
+                      {completeTotal > 0 && (completeCashAmount + completeTransferAmount) !== completeTotal && (
+                        <p className="col-span-2 text-xs text-destructive">
+                          Suma: {formatCOP(completeCashAmount + completeTransferAmount)} — debe ser {formatCOP(completeTotal)}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <Select value={completePaymentMethod} onValueChange={setCompletePaymentMethod}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((pm) => (
+                          <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </>
+              )}
+            </div>
+
               <div className="rounded-lg bg-secondary p-4 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Base ({completeServiceType})</span>
