@@ -152,7 +152,16 @@ export default function Alquileres() {
       toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
       return;
     }
+    if (!completePaymentPending && !completePaymentSplit && !completePaymentMethod) {
+      toast({ title: "Selecciona el método de pago", variant: "destructive" });
+      return;
+    }
+    if (completePaymentSplit && (completeCashAmount + completeTransferAmount) !== completeTotal) {
+      toast({ title: "Los montos divididos deben sumar el total", variant: "destructive" });
+      return;
+    }
     try {
+      const isPending = completePaymentPending;
       await updateRentalStatus(completingRental.id, "completed", {
         pickedUpBy: completePickedUpBy,
         exitTime: completeExitTime,
@@ -162,14 +171,21 @@ export default function Alquileres() {
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
         floor: completeFloor,
+        paymentMethod: isPending ? "Pago pendiente" : completePaymentSplit ? "Dividido" : completePaymentMethod,
+        paymentSplit: completePaymentSplit,
+        paymentCashAmount: completePaymentSplit ? completeCashAmount : 0,
+        paymentTransferAmount: completePaymentSplit ? completeTransferAmount : 0,
+        paymentPending: isPending,
       });
-      await insertCashEntry({
-        type: "income", amount: completeTotal,
-        description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})`,
-        category: "alquiler", created_by: user!.id,
-      });
+      if (!isPending) {
+        await insertCashEntry({
+          type: "income", amount: completeTotal,
+          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
+          category: "alquiler", created_by: user!.id,
+        });
+      }
       closeCompleteDialog();
-      toast({ title: "Alquiler completado ✓" });
+      toast({ title: isPending ? "Alquiler completado (pago pendiente) ✓" : "Alquiler completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
     }
