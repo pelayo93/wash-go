@@ -13,10 +13,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { formatCOP, EXTRA_HORA, PISO_EXTRA } from "@/lib/data";
+import { formatCOP } from "@/lib/data";
 import {
   fetchZones, insertZone, updateZone, deleteZone,
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
+  fetchAppSettings, updateAppSetting,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 
