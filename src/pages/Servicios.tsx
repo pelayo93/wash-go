@@ -131,26 +131,36 @@ export default function Servicios() {
         <p className="text-sm text-muted-foreground">Gestiona zonas, servicios y precios</p>
       </div>
 
-      {/* Global surcharges info */}
+      {/* Global surcharges */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-primary" /> Recargos Globales
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Recargos Globales
+            </CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+              setEditExtraHora(String(extraHora));
+              setEditPiso34(String(piso34));
+              setEditPiso56(String(piso56));
+              setEditingSurcharges(true);
+            }}>
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Hora Extra</p>
-              <p className="font-semibold">{formatCOP(EXTRA_HORA)}</p>
+              <p className="font-semibold">{formatCOP(extraHora)}</p>
             </div>
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Piso 3°-4°</p>
-              <p className="font-semibold">+{formatCOP(PISO_EXTRA["3-4"])}</p>
+              <p className="font-semibold">+{formatCOP(piso34)}</p>
             </div>
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Piso 5°-6°</p>
-              <p className="font-semibold">+{formatCOP(PISO_EXTRA["5-6"])}</p>
+              <p className="font-semibold">+{formatCOP(piso56)}</p>
             </div>
           </div>
         </CardContent>
