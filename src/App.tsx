@@ -80,6 +80,7 @@ function AppRoutes() {
             <Route path="/alquileres" element={<Alquileres />} />
             <Route path="/caja" element={<Caja />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/servicios" element={<Servicios />} />
             <Route path="/usuarios" element={<Usuarios />} />
           </>
         ) : (

@@ -20,6 +20,7 @@ const allNavItems = [
   { to: "/caja", label: "Caja", icon: Wallet, roles: ["admin"] },
   { to: "/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
   { to: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
+  { to: "/servicios", label: "Servicios", icon: Settings, roles: ["admin"] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
