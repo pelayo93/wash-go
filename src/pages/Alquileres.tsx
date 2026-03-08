@@ -54,8 +54,8 @@ export default function Alquileres() {
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
-  const completeFloorSurcharge = completeFloor === "3-4" ? PISO_EXTRA["3-4"] : completeFloor === "5-6" ? PISO_EXTRA["5-6"] : 0;
-  const completeTotal = completeBasePrice + completeExtraHours * EXTRA_HORA + completeFloorSurcharge;
+  const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
+  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
     try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
