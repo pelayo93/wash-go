@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
