@@ -13,7 +13,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ZONES, EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
+import { EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
+import { useZones } from "@/hooks/useZones";
 import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
