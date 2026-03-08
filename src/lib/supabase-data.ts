@@ -175,6 +175,64 @@ export async function deleteDeliveryPerson(id: string) {
   if (error) throw error;
 }
 
+// ── Zones ──
+
+export async function fetchZones() {
+  const { data, error } = await supabase
+    .from("zones")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertZone(name: string) {
+  const { error } = await supabase.from("zones").insert({ name });
+  if (error) throw error;
+}
+
+export async function updateZone(id: string, updates: { name?: string; active?: boolean }) {
+  const { error } = await supabase.from("zones").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteZone(id: string) {
+  const { error } = await supabase.from("zones").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
+// ── Zone Prices ──
+
+export async function fetchZonePrices(zoneId?: string) {
+  let query = supabase.from("zone_prices").select("*").eq("active", true).order("service_name");
+  if (zoneId) query = query.eq("zone_id", zoneId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertZonePrice(zoneId: string, serviceName: string, price: number) {
+  const { data: existing } = await supabase
+    .from("zone_prices")
+    .select("id")
+    .eq("zone_id", zoneId)
+    .eq("service_name", serviceName)
+    .maybeSingle();
+  if (existing) {
+    const { error } = await supabase.from("zone_prices").update({ price, active: true }).eq("id", existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("zone_prices").insert({ zone_id: zoneId, service_name: serviceName, price });
+    if (error) throw error;
+  }
+}
+
+export async function deleteZonePrice(id: string) {
+  const { error } = await supabase.from("zone_prices").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
 // ── Cash Audit Log ──
 
 export async function insertCashAuditLog(entry: {
