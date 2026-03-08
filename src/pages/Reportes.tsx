@@ -331,31 +331,60 @@ export default function Reportes() {
         <TabsContent value="personas">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="section-title flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-primary" /> Rendimiento por Repartidor
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="section-title flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-primary" /> Rendimiento por Repartidor
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={handleExportAllPersonsCSV} disabled={byPerson.length === 0}>
+                    <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportAllPersonsPDF} disabled={byPerson.length === 0}>
+                    <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {byPerson.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">No hay datos en este rango</p>
               ) : (
-                <div className="space-y-2">
-                  {byPerson.map(([name, data]) => (
-                    <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <div>
-                        <p className="font-medium text-sm">{name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {data.deliveries} entregas • {data.pickups} retiros
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm">{formatCOP(data.total)}</span>
-                        <Button size="sm" variant="outline" onClick={() => setSelectedPerson(name)}>
-                          <Eye className="h-3.5 w-3.5 mr-1" /> Cierre
-                        </Button>
-                      </div>
+                <div className="space-y-4">
+                  {/* Summary totals */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg bg-secondary p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Total Entregas</p>
+                      <p className="text-lg font-bold">{totalDeliveries}</p>
                     </div>
-                  ))}
+                    <div className="rounded-lg bg-secondary p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Total Retiros</p>
+                      <p className="text-lg font-bold">{totalPickups}</p>
+                    </div>
+                    <div className="rounded-lg bg-secondary p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Total General</p>
+                      <p className="text-lg font-bold text-primary">{formatCOP(totalPersonAmount)}</p>
+                    </div>
+                  </div>
+
+                  {/* Person list */}
+                  <div className="space-y-2">
+                    {byPerson.map(([name, data]) => (
+                      <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                        <div>
+                          <p className="font-medium text-sm">{name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {data.deliveries} entregas • {data.pickups} retiros
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedPerson(name)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" /> Cierre
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
