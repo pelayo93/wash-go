@@ -147,6 +147,7 @@ export default function Reportes() {
       ["Repartidor", "Entregas", "Retiros", "Total"],
       byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]),
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
+  };
 
   const handleExportPersonCSV = () => {
     if (!selectedPerson) return;
