@@ -16,6 +16,7 @@ export default function Reportes() {
   const [dailyCloses, setDailyCloses] = useState<any[]>([]);
   const [allRentals, setAllRentals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
