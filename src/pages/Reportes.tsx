@@ -133,6 +133,21 @@ export default function Reportes() {
       byZone.map(([zone, d]) => [zone, d.count.toString(), formatCOP(d.total)]));
   };
 
+  const totalDeliveries = byPerson.reduce((s, [, d]) => s + d.deliveries, 0);
+  const totalPickups = byPerson.reduce((s, [, d]) => s + d.pickups, 0);
+  const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
+
+  const handleExportAllPersonsCSV = () => {
+    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "Retiros", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]));
+  };
+
+  const handleExportAllPersonsPDF = () => {
+    exportToPDF("Reporte por Repartidor", "reporte_repartidores",
+      ["Repartidor", "Entregas", "Retiros", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]),
+      [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
+
   const handleExportPersonCSV = () => {
     if (!selectedPerson) return;
     exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
