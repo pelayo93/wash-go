@@ -428,6 +428,7 @@ export default function Reportes() {
                                   <span className="text-muted-foreground"> • {s.zone} • {s.service_type}</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs">
+                                  <Badge variant={s.role === "Entrega" ? "default" : "secondary"} className="text-[10px]">{s.role}</Badge>
                                   <span className="text-muted-foreground">{s.date}</span>
                                   <span className="font-semibold">{formatCOP(s.total)}</span>
                                 </div>
