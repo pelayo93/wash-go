@@ -71,13 +71,17 @@ export default function Reportes() {
       return d >= startDate && d <= endDate;
     }), [allRentals, startDate, endDate]);
 
-  // By zone
+  // By zone with service breakdown
   const byZone = useMemo(() => {
-    const map: Record<string, { count: number; total: number }> = {};
+    const map: Record<string, { count: number; total: number; services: Record<string, { count: number; total: number }> }> = {};
     filteredRentals.forEach((r) => {
-      if (!map[r.zone]) map[r.zone] = { count: 0, total: 0 };
+      if (!map[r.zone]) map[r.zone] = { count: 0, total: 0, services: {} };
       map[r.zone].count++;
       map[r.zone].total += r.total;
+      const svc = r.service_type || "Sin servicio";
+      if (!map[r.zone].services[svc]) map[r.zone].services[svc] = { count: 0, total: 0 };
+      map[r.zone].services[svc].count++;
+      map[r.zone].services[svc].total += r.total;
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
