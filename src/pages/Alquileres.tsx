@@ -427,11 +427,17 @@ export default function Alquileres() {
               {rentals.map((r) => (
                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-sm truncate">{r.client_name}</p>
                       <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-xs">
                         {r.status === "active" ? "Activo" : "Completado"}
                       </Badge>
+                      {r.payment_pending && (
+                        <Badge variant="destructive" className="text-xs">Pago Pendiente</Badge>
+                      )}
+                      {r.payment_method && !r.payment_pending && (
+                        <Badge variant="outline" className="text-xs">{r.payment_method}</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.zone} {r.service_type && `• ${r.service_type}`} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}
