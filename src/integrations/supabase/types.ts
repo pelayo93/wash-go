@@ -230,6 +230,62 @@ export type Database = {
         }
         Relationships: []
       }
+      zone_prices: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          price: number
+          service_name: string
+          zone_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          price?: number
+          service_name: string
+          zone_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          price?: number
+          service_name?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_prices_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zones: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
