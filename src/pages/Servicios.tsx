@@ -18,6 +18,7 @@ import {
   fetchZones, insertZone, updateZone, deleteZone,
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
   fetchAppSettings, updateAppSetting,
+  fetchPaymentMethods, insertPaymentMethod, deletePaymentMethod,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 
