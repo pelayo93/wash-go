@@ -10,6 +10,7 @@ import Alquileres from "@/pages/Alquileres";
 import Caja from "@/pages/Caja";
 import Reportes from "@/pages/Reportes";
 import Usuarios from "@/pages/Usuarios";
+import Servicios from "@/pages/Servicios";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 
