@@ -30,6 +30,7 @@ export default function Alquileres() {
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
+  const { surcharges } = useSurcharges();
 
   // Complete dialog state
   const [completingRental, setCompletingRental] = useState<any | null>(null);
