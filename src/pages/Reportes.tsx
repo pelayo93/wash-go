@@ -18,6 +18,8 @@ export default function Reportes() {
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
+  const [expandedZone, setExpandedZone] = useState<string | null>(null);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
@@ -79,6 +81,34 @@ export default function Reportes() {
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
+
+  // Services breakdown per zone
+  const zoneServices = useMemo(() => {
+    const map: Record<string, { service_type: string; total: number; client_name: string; date: string; delivered_by: string; status: string }[]> = {};
+    filteredRentals.forEach((r) => {
+      if (!map[r.zone]) map[r.zone] = [];
+      map[r.zone].push({
+        service_type: r.service_type || "-",
+        total: r.total,
+        client_name: r.client_name,
+        date: new Date(r.created_at).toLocaleDateString("es-CO"),
+        delivered_by: r.delivered_by || "-",
+        status: r.status,
+      });
+    });
+    return map;
+  }, [filteredRentals]);
+
+  const zoneRentals = useMemo(() => {
+    if (!selectedZone) return [];
+    return filteredRentals.filter((r) => r.zone === selectedZone);
+  }, [filteredRentals, selectedZone]);
+
+  const zoneSummary = useMemo(() => {
+    if (!selectedZone) return { count: 0, total: 0 };
+    const data = byZone.find(([name]) => name === selectedZone);
+    return data ? data[1] : { count: 0, total: 0 };
+  }, [byZone, selectedZone]);
 
   // By delivery person
   const byPerson = useMemo(() => {
@@ -154,6 +184,26 @@ export default function Reportes() {
     exportToPDF("Reporte por Zona", "reporte_zonas",
       ["Zona", "Servicios", "Total"],
       byZone.map(([zone, d]) => [zone, d.count.toString(), formatCOP(d.total)]));
+  };
+
+  const handleExportZoneDetailCSV = () => {
+    if (!selectedZone) return;
+    exportToCSV(`reporte_zona_${selectedZone}`, ["Cliente", "Servicio", "Repartidor", "Total", "Fecha", "Estado"],
+      zoneRentals.map((r) => [
+        r.client_name, r.service_type || "-", r.delivered_by || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"), r.status === "active" ? "Activo" : "Completado",
+      ]));
+  };
+
+  const handleExportZoneDetailPDF = () => {
+    if (!selectedZone) return;
+    exportToPDF(`Detalle Zona: ${selectedZone}`, `reporte_zona_${selectedZone}`,
+      ["Cliente", "Servicio", "Repartidor", "Total", "Fecha", "Estado"],
+      zoneRentals.map((r) => [
+        r.client_name, r.service_type || "-", r.delivered_by || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"), r.status === "active" ? "Activo" : "Completado",
+      ]),
+      [{ label: "Zona", value: selectedZone }, { label: "Servicios", value: zoneSummary.count.toString() }, { label: "Total", value: formatCOP(zoneSummary.total) }]);
   };
 
   const totalDeliveries = byPerson.reduce((s, [, d]) => s + d.deliveries, 0);
@@ -336,12 +386,50 @@ export default function Reportes() {
               ) : (
                 <div className="space-y-2">
                   {byZone.map(([zone, data]) => (
-                    <div key={zone} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <div>
-                        <p className="font-medium text-sm">{zone}</p>
-                        <p className="text-xs text-muted-foreground">{data.count} servicios</p>
+                    <div key={zone} className="rounded-lg bg-secondary/50 overflow-hidden">
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => setExpandedZone(expandedZone === zone ? null : zone)}
+                          >
+                            {expandedZone === zone
+                              ? <ChevronUp className="h-4 w-4" />
+                              : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                          <div>
+                            <p className="font-medium text-sm">{zone}</p>
+                            <p className="text-xs text-muted-foreground">{data.count} servicios</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedZone(zone)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" /> Detalle
+                          </Button>
+                        </div>
                       </div>
-                      <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                      {expandedZone === zone && zoneServices[zone] && (
+                        <div className="px-3 pb-3 space-y-1 border-t border-border pt-2 ml-8">
+                          {zoneServices[zone].map((s, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-background/50">
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">{s.client_name}</span>
+                                <span className="text-muted-foreground"> • {s.service_type} • {s.delivered_by}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs">
+                                <Badge variant={s.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                                  {s.status === "active" ? "Activo" : "Completado"}
+                                </Badge>
+                                <span className="text-muted-foreground">{s.date}</span>
+                                <span className="font-semibold">{formatCOP(s.total)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -509,6 +597,73 @@ export default function Reportes() {
                   <Download className="h-3.5 w-3.5 mr-1" /> CSV
                 </Button>
                 <Button size="sm" variant="outline" onClick={handleExportPersonPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                </Button>
+                <DialogClose asChild>
+                  <Button size="sm">Cerrar</Button>
+                </DialogClose>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Zone detail dialog */}
+      <Dialog open={!!selectedZone} onOpenChange={(open) => { if (!open) setSelectedZone(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Detalle de Zona
+            </DialogTitle>
+          </DialogHeader>
+          {selectedZone && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-secondary p-4 space-y-2">
+                <p className="font-semibold text-base">{selectedZone}</p>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Servicios</p>
+                    <p className="text-lg font-bold">{zoneSummary.count}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-primary">{formatCOP(zoneSummary.total)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Detalle de servicios</p>
+                {zoneRentals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Sin servicios en este rango</p>
+                ) : (
+                  zoneRentals.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{r.client_name}</p>
+                          <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                            {r.status === "active" ? "Activo" : "Completado"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {r.service_type || "-"} {r.delivered_by && `• ${r.delivered_by}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("es-CO")}
+                        </p>
+                      </div>
+                      <span className="font-semibold text-sm whitespace-nowrap">{formatCOP(r.total)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-border">
+                <Button size="sm" variant="outline" onClick={handleExportZoneDetailCSV}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleExportZoneDetailPDF}>
                   <FileText className="h-3.5 w-3.5 mr-1" /> PDF
                 </Button>
                 <DialogClose asChild>
