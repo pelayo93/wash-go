@@ -18,6 +18,8 @@ export default function Reportes() {
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
+  const [expandedZone, setExpandedZone] = useState<string | null>(null);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
