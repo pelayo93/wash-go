@@ -172,6 +172,66 @@ export default function Servicios() {
         </CardContent>
       </Card>
 
+      {/* Payment methods */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" /> Métodos de Pago
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newPmName}
+              onChange={(e) => setNewPmName(e.target.value)}
+              placeholder="Nuevo método de pago"
+              onKeyDown={(e) => e.key === "Enter" && (async () => {
+                if (!newPmName.trim()) return;
+                try {
+                  await insertPaymentMethod(newPmName.trim());
+                  setNewPmName("");
+                  await load();
+                  toast({ title: "Método agregado ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              })()}
+            />
+            <Button size="sm" onClick={async () => {
+              if (!newPmName.trim()) return;
+              try {
+                await insertPaymentMethod(newPmName.trim());
+                setNewPmName("");
+                await load();
+                toast({ title: "Método agregado ✓" });
+              } catch (err: any) {
+                toast({ title: err.message || "Error", variant: "destructive" });
+              }
+            }}>
+              <Plus className="h-4 w-4 mr-1" /> Agregar
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {pmList.map((pm) => (
+              <div key={pm.id} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5">
+                <span className="text-sm font-medium">{pm.name}</span>
+                <button onClick={async () => {
+                  try {
+                    await deletePaymentMethod(pm.id);
+                    await load();
+                    toast({ title: "Método eliminado ✓" });
+                  } catch (err: any) {
+                    toast({ title: err.message || "Error", variant: "destructive" });
+                  }
+                }} className="text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add new zone */}
       <Card>
         <CardHeader className="pb-3">
