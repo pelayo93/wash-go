@@ -96,6 +96,20 @@ export default function Reportes() {
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
 
+  // Rentals for selected person
+  const personRentals = useMemo(() => {
+    if (!selectedPerson) return [];
+    return filteredRentals.filter(
+      (r) => r.delivered_by === selectedPerson || r.picked_up_by === selectedPerson
+    );
+  }, [filteredRentals, selectedPerson]);
+
+  const personSummary = useMemo(() => {
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, total: 0 };
+    const data = byPerson.find(([name]) => name === selectedPerson);
+    return data ? data[1] : { deliveries: 0, pickups: 0, total: 0 };
+  }, [byPerson, selectedPerson]);
+
   const handleExportFinancialCSV = () => {
     exportToCSV("reporte_financiero", ["Fecha", "Ingresos", "Egresos", "Balance", "Estado"],
       byDate.map(([date, d]) => [date, formatCOP(d.income), formatCOP(d.expense), formatCOP(d.income - d.expense), d.closed ? "Cerrado" : "Abierto"]));
@@ -117,6 +131,33 @@ export default function Reportes() {
     exportToPDF("Reporte por Zona", "reporte_zonas",
       ["Zona", "Servicios", "Total"],
       byZone.map(([zone, d]) => [zone, d.count.toString(), formatCOP(d.total)]));
+  };
+
+  const handleExportPersonCSV = () => {
+    if (!selectedPerson) return;
+    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      personRentals.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"),
+        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      ]));
+  };
+
+  const handleExportPersonPDF = () => {
+    if (!selectedPerson) return;
+    exportToPDF(`Cierre Repartidor: ${selectedPerson}`, `cierre_${selectedPerson}`,
+      ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      personRentals.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        new Date(r.created_at).toLocaleDateString("es-CO"),
+        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      ]),
+      [
+        { label: "Repartidor", value: selectedPerson },
+        { label: "Entregas", value: personSummary.deliveries.toString() },
+        { label: "Retiros", value: personSummary.pickups.toString() },
+        { label: "Total", value: formatCOP(personSummary.total) },
+      ]);
   };
 
   if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
