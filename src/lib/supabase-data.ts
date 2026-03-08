@@ -263,6 +263,33 @@ export async function updateAppSetting(key: string, value: number) {
   if (error) throw error;
 }
 
+// ── Payment Methods ──
+
+export async function fetchPaymentMethods() {
+  const { data, error } = await supabase
+    .from("payment_methods")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertPaymentMethod(name: string) {
+  const { error } = await supabase.from("payment_methods").insert({ name });
+  if (error) throw error;
+}
+
+export async function deletePaymentMethod(id: string) {
+  const { error } = await supabase.from("payment_methods").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateRentalPaymentPending(id: string, pending: boolean) {
+  const { error } = await supabase.from("rentals").update({ payment_pending: pending }).eq("id", id);
+  if (error) throw error;
+}
+
 // ── Cash Audit Log ──
 
 export async function insertCashAuditLog(entry: {
