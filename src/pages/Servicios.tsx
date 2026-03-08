@@ -13,10 +13,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { formatCOP, EXTRA_HORA, PISO_EXTRA } from "@/lib/data";
+import { formatCOP } from "@/lib/data";
 import {
   fetchZones, insertZone, updateZone, deleteZone,
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
+  fetchAppSettings, updateAppSetting,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +26,15 @@ export default function Servicios() {
   const [zones, setZones] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Surcharges
+  const [extraHora, setExtraHora] = useState(3000);
+  const [piso34, setPiso34] = useState(1000);
+  const [piso56, setPiso56] = useState(2000);
+  const [editingSurcharges, setEditingSurcharges] = useState(false);
+  const [editExtraHora, setEditExtraHora] = useState("");
+  const [editPiso34, setEditPiso34] = useState("");
+  const [editPiso56, setEditPiso56] = useState("");
 
   // New zone
   const [newZoneName, setNewZoneName] = useState("");
@@ -40,9 +50,12 @@ export default function Servicios() {
 
   const load = useCallback(async () => {
     try {
-      const [z, p] = await Promise.all([fetchZones(), fetchZonePrices()]);
+      const [z, p, settings] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings()]);
       setZones(z);
       setPrices(p);
+      setExtraHora(settings.extra_hora ?? 3000);
+      setPiso34(settings.piso_3_4 ?? 1000);
+      setPiso56(settings.piso_5_6 ?? 2000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -118,26 +131,36 @@ export default function Servicios() {
         <p className="text-sm text-muted-foreground">Gestiona zonas, servicios y precios</p>
       </div>
 
-      {/* Global surcharges info */}
+      {/* Global surcharges */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-primary" /> Recargos Globales
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Recargos Globales
+            </CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+              setEditExtraHora(String(extraHora));
+              setEditPiso34(String(piso34));
+              setEditPiso56(String(piso56));
+              setEditingSurcharges(true);
+            }}>
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Hora Extra</p>
-              <p className="font-semibold">{formatCOP(EXTRA_HORA)}</p>
+              <p className="font-semibold">{formatCOP(extraHora)}</p>
             </div>
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Piso 3°-4°</p>
-              <p className="font-semibold">+{formatCOP(PISO_EXTRA["3-4"])}</p>
+              <p className="font-semibold">+{formatCOP(piso34)}</p>
             </div>
             <div className="rounded-lg bg-secondary p-3">
               <p className="text-muted-foreground">Piso 5°-6°</p>
-              <p className="font-semibold">+{formatCOP(PISO_EXTRA["5-6"])}</p>
+              <p className="font-semibold">+{formatCOP(piso56)}</p>
             </div>
           </div>
         </CardContent>
@@ -289,6 +312,46 @@ export default function Servicios() {
             <div className="flex gap-2 justify-end">
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
               <Button onClick={handleAddService}>
+                <Save className="h-4 w-4 mr-1" /> Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit surcharges dialog */}
+      <Dialog open={editingSurcharges} onOpenChange={setEditingSurcharges}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Editar Recargos Globales</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Hora Extra (COP)</Label>
+              <Input type="number" min={0} value={editExtraHora} onChange={(e) => setEditExtraHora(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Recargo Piso 3°-4° (COP)</Label>
+              <Input type="number" min={0} value={editPiso34} onChange={(e) => setEditPiso34(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Recargo Piso 5°-6° (COP)</Label>
+              <Input type="number" min={0} value={editPiso56} onChange={(e) => setEditPiso56(e.target.value)} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+              <Button onClick={async () => {
+                try {
+                  await Promise.all([
+                    updateAppSetting("extra_hora", Number(editExtraHora)),
+                    updateAppSetting("piso_3_4", Number(editPiso34)),
+                    updateAppSetting("piso_5_6", Number(editPiso56)),
+                  ]);
+                  setEditingSurcharges(false);
+                  await load();
+                  toast({ title: "Recargos actualizados ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              }}>
                 <Save className="h-4 w-4 mr-1" /> Guardar
               </Button>
             </div>

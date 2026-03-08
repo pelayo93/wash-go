@@ -235,6 +235,26 @@ export async function deleteZonePrice(id: string) {
 
 // ── Cash Audit Log ──
 
+// ── App Settings ──
+
+export async function fetchAppSettings(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from("app_settings").select("*");
+  if (error) throw error;
+  const map: Record<string, number> = {};
+  (data ?? []).forEach((s: any) => { map[s.key] = s.value; });
+  return map;
+}
+
+export async function updateAppSetting(key: string, value: number) {
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq("key", key);
+  if (error) throw error;
+}
+
+// ── Cash Audit Log ──
+
 export async function insertCashAuditLog(entry: {
   action: string;
   cash_entry_id?: string;

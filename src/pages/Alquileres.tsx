@@ -13,8 +13,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { EXTRA_HORA, PISO_EXTRA, formatCOP } from "@/lib/data";
+import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
+import { useSurcharges } from "@/hooks/useSurcharges";
 import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ export default function Alquileres() {
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
+  const { surcharges } = useSurcharges();
 
   // Complete dialog state
   const [completingRental, setCompletingRental] = useState<any | null>(null);
@@ -52,8 +54,8 @@ export default function Alquileres() {
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
-  const completeFloorSurcharge = completeFloor === "3-4" ? PISO_EXTRA["3-4"] : completeFloor === "5-6" ? PISO_EXTRA["5-6"] : 0;
-  const completeTotal = completeBasePrice + completeExtraHours * EXTRA_HORA + completeFloorSurcharge;
+  const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
+  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
     try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
@@ -248,7 +250,7 @@ export default function Alquileres() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Horas Extras ({formatCOP(EXTRA_HORA)}/h)</Label>
+              <Label>Horas Extras ({formatCOP(surcharges.extraHora)}/h)</Label>
               <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
             </div>
             <div className="space-y-2">
@@ -257,8 +259,8 @@ export default function Alquileres() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
-                  <SelectItem value="3-4">3° - 4° (+{formatCOP(PISO_EXTRA["3-4"])})</SelectItem>
-                  <SelectItem value="5-6">5° - 6° (+{formatCOP(PISO_EXTRA["5-6"])})</SelectItem>
+                  <SelectItem value="3-4">3° - 4° (+{formatCOP(surcharges.piso34)})</SelectItem>
+                  <SelectItem value="5-6">5° - 6° (+{formatCOP(surcharges.piso56)})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -287,7 +289,7 @@ export default function Alquileres() {
                 {completeExtraHours > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{completeExtraHours} hora(s) extra</span>
-                    <span>{formatCOP(completeExtraHours * EXTRA_HORA)}</span>
+                    <span>{formatCOP(completeExtraHours * surcharges.extraHora)}</span>
                   </div>
                 )}
                 {completeFloorSurcharge > 0 && (
