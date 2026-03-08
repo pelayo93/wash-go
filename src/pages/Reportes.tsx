@@ -388,19 +388,49 @@ export default function Reportes() {
                   {/* Person list */}
                   <div className="space-y-2">
                     {byPerson.map(([name, data]) => (
-                      <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                        <div>
-                          <p className="font-medium text-sm">{name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {data.deliveries} entregas • {data.pickups} retiros
-                          </p>
+                      <div key={name} className="rounded-lg bg-secondary/50 overflow-hidden">
+                        <div className="flex items-center justify-between p-3">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setExpandedPerson(expandedPerson === name ? null : name)}
+                            >
+                              {expandedPerson === name
+                                ? <ChevronUp className="h-4 w-4" />
+                                : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                            <div>
+                              <p className="font-medium text-sm">{name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {data.deliveries} entregas • {data.pickups} retiros
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                            <Button size="sm" variant="outline" onClick={() => setSelectedPerson(name)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Cierre
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-sm">{formatCOP(data.total)}</span>
-                          <Button size="sm" variant="outline" onClick={() => setSelectedPerson(name)}>
-                            <Eye className="h-3.5 w-3.5 mr-1" /> Cierre
-                          </Button>
-                        </div>
+                        {expandedPerson === name && personServices[name] && (
+                          <div className="px-3 pb-3 space-y-1 border-t border-border pt-2 ml-8">
+                            {personServices[name].map((s, i) => (
+                              <div key={i} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-background/50">
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-medium">{s.client_name}</span>
+                                  <span className="text-muted-foreground"> • {s.zone} • {s.service_type}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-muted-foreground">{s.date}</span>
+                                  <span className="font-semibold">{formatCOP(s.total)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
