@@ -71,13 +71,17 @@ export default function Reportes() {
       return d >= startDate && d <= endDate;
     }), [allRentals, startDate, endDate]);
 
-  // By zone
+  // By zone with service breakdown
   const byZone = useMemo(() => {
-    const map: Record<string, { count: number; total: number }> = {};
+    const map: Record<string, { count: number; total: number; services: Record<string, { count: number; total: number }> }> = {};
     filteredRentals.forEach((r) => {
-      if (!map[r.zone]) map[r.zone] = { count: 0, total: 0 };
+      if (!map[r.zone]) map[r.zone] = { count: 0, total: 0, services: {} };
       map[r.zone].count++;
       map[r.zone].total += r.total;
+      const svc = r.service_type || "Sin servicio";
+      if (!map[r.zone].services[svc]) map[r.zone].services[svc] = { count: 0, total: 0 };
+      map[r.zone].services[svc].count++;
+      map[r.zone].services[svc].total += r.total;
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
@@ -411,21 +415,15 @@ export default function Reportes() {
                           </Button>
                         </div>
                       </div>
-                      {expandedZone === zone && zoneServices[zone] && (
-                        <div className="px-3 pb-3 space-y-1 border-t border-border pt-2 ml-8">
-                          {zoneServices[zone].map((s, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-background/50">
-                              <div className="min-w-0 flex-1">
-                                <span className="font-medium">{s.client_name}</span>
-                                <span className="text-muted-foreground"> • {s.service_type} • {s.delivered_by}</span>
+                      {expandedZone === zone && (
+                        <div className="px-3 pb-3 space-y-2 border-t border-border pt-2 ml-8">
+                          {Object.entries(data.services).sort(([, a], [, b]) => b.total - a.total).map(([svcName, svcData]) => (
+                            <div key={svcName} className="flex items-center justify-between text-sm py-2 px-3 rounded bg-background/50">
+                              <div>
+                                <span className="font-semibold">{svcName}</span>
+                                <span className="text-muted-foreground text-xs ml-2">× {svcData.count}</span>
                               </div>
-                              <div className="flex items-center gap-3 text-xs">
-                                <Badge variant={s.status === "active" ? "default" : "secondary"} className="text-[10px]">
-                                  {s.status === "active" ? "Activo" : "Completado"}
-                                </Badge>
-                                <span className="text-muted-foreground">{s.date}</span>
-                                <span className="font-semibold">{formatCOP(s.total)}</span>
-                              </div>
+                              <span className="font-semibold">{formatCOP(svcData.total)}</span>
                             </div>
                           ))}
                         </div>
