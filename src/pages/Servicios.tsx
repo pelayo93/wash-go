@@ -55,12 +55,13 @@ export default function Servicios() {
 
   const load = useCallback(async () => {
     try {
-      const [z, p, settings] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings()]);
+      const [z, p, settings, pm] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings(), fetchPaymentMethods()]);
       setZones(z);
       setPrices(p);
       setExtraHora(settings.extra_hora ?? 3000);
       setPiso34(settings.piso_3_4 ?? 1000);
       setPiso56(settings.piso_5_6 ?? 2000);
+      setPmList(pm);
     } catch (err) {
       console.error(err);
     } finally {
