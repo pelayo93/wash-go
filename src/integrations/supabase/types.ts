@@ -149,6 +149,27 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -183,6 +204,11 @@ export type Database = {
           floor_number: string | null
           floor_surcharge: number
           id: string
+          payment_cash_amount: number
+          payment_method: string
+          payment_pending: boolean
+          payment_split: boolean
+          payment_transfer_amount: number
           phone: string
           picked_up_by: string | null
           price: number
@@ -203,6 +229,11 @@ export type Database = {
           floor_number?: string | null
           floor_surcharge?: number
           id?: string
+          payment_cash_amount?: number
+          payment_method?: string
+          payment_pending?: boolean
+          payment_split?: boolean
+          payment_transfer_amount?: number
           phone: string
           picked_up_by?: string | null
           price?: number
@@ -223,6 +254,11 @@ export type Database = {
           floor_number?: string | null
           floor_surcharge?: number
           id?: string
+          payment_cash_amount?: number
+          payment_method?: string
+          payment_pending?: boolean
+          payment_split?: boolean
+          payment_transfer_amount?: number
           phone?: string
           picked_up_by?: string | null
           price?: number

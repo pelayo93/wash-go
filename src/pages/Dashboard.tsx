@@ -1,21 +1,22 @@
 import { useState, useEffect } from "react";
 import {
   WashingMachine,
-  Warehouse,
-  Wrench,
   TrendingUp,
   TrendingDown,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatCOP } from "@/lib/data";
 import { fetchRentals, fetchTodayCashEntries } from "@/lib/supabase-data";
 
 export default function Dashboard() {
   const [activeRentals, setActiveRentals] = useState<any[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,7 @@ export default function Dashboard() {
     try {
       const [rentals, entries] = await Promise.all([fetchRentals(), fetchTodayCashEntries()]);
       setActiveRentals(rentals.filter((r) => r.status === "active"));
+      setPendingPayments(rentals.filter((r) => r.payment_pending));
       setRecentEntries(entries.slice(0, 5));
       const income = entries.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0);
       const expense = entries.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
@@ -45,6 +47,8 @@ export default function Dashboard() {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
+  const pendingTotal = pendingPayments.reduce((s, r) => s + r.total, 0);
+
   if (loading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
   }
@@ -57,7 +61,7 @@ export default function Dashboard() {
       </div>
 
       {/* Financial summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4 flex items-center gap-4">
             <div className="h-11 w-11 rounded-lg bg-success/10 flex items-center justify-center">
@@ -91,15 +95,26 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4 flex items-center gap-4">
+            <div className="h-11 w-11 rounded-lg bg-warning/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Pagos Pendientes</p>
+              <p className="stat-value text-warning">{pendingPayments.length} ({formatCOP(pendingTotal)})</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Active rentals & recent transactions */}
+      {/* Active rentals, pending payments & recent transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="section-title flex items-center gap-2">
               <WashingMachine className="h-5 w-5 text-primary" />
-              Alquileres Activos
+              Alquileres Activos ({activeRentals.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -107,13 +122,17 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground py-6 text-center">No hay alquileres activos</p>
             ) : (
               <div className="space-y-3">
-                {activeRentals.slice(0, 5).map((r) => (
+                {activeRentals.slice(0, 8).map((r) => (
                   <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                     <div>
                       <p className="font-medium text-sm">{r.client_name}</p>
-                      <p className="text-xs text-muted-foreground">{r.zone} • {r.service_type}</p>
+                      <p className="text-xs text-muted-foreground">{r.zone} • {r.address}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {r.delivered_by && `Entregó: ${r.delivered_by}`}
+                        {r.entry_time && ` • ${r.entry_time}`}
+                      </p>
                     </div>
-                    <span className="font-semibold text-sm">{formatCOP(r.total)}</span>
+                    <Badge variant="default" className="text-xs">Activo</Badge>
                   </div>
                 ))}
               </div>
@@ -124,33 +143,27 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="section-title flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Movimientos Recientes
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Pagos Pendientes ({pendingPayments.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {recentEntries.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Sin movimientos hoy</p>
+            {pendingPayments.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No hay pagos pendientes</p>
             ) : (
               <div className="space-y-3">
-                {recentEntries.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      {e.type === "income" ? (
-                        <TrendingUp className="h-4 w-4 text-success" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-destructive" />
-                      )}
-                      <div>
-                        <p className="font-medium text-sm">{e.description || (e.type === "income" ? "Pago cliente" : "Gasto")}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(e.created_at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
+                {pendingPayments.slice(0, 8).map((r) => (
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                    <div>
+                      <p className="font-medium text-sm">{r.client_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {r.zone} • {r.service_type} • {r.phone}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(r.created_at).toLocaleDateString("es-CO")}
+                      </p>
                     </div>
-                    <span className={`font-semibold text-sm ${e.type === "income" ? "text-success" : "text-destructive"}`}>
-                      {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
-                    </span>
+                    <span className="font-semibold text-sm text-warning">{formatCOP(r.total)}</span>
                   </div>
                 ))}
               </div>
@@ -158,6 +171,44 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent transactions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="section-title flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            Movimientos Recientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Sin movimientos hoy</p>
+          ) : (
+            <div className="space-y-3">
+              {recentEntries.map((e) => (
+                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                  <div className="flex items-center gap-3">
+                    {e.type === "income" ? (
+                      <TrendingUp className="h-4 w-4 text-success" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">{e.description || (e.type === "income" ? "Pago cliente" : "Gasto")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(e.created_at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`font-semibold text-sm ${e.type === "income" ? "text-success" : "text-destructive"}`}>
+                    {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

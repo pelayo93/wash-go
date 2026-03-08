@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck,
+  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,12 @@ export default function Alquileres() {
   const [completeServiceType, setCompleteServiceType] = useState("");
   const [completeExtraHours, setCompleteExtraHours] = useState(0);
   const [completeFloor, setCompleteFloor] = useState("1-2");
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [completePaymentMethod, setCompletePaymentMethod] = useState("");
+  const [completePaymentSplit, setCompletePaymentSplit] = useState(false);
+  const [completeCashAmount, setCompleteCashAmount] = useState(0);
+  const [completeTransferAmount, setCompleteTransferAmount] = useState(0);
+  const [completePaymentPending, setCompletePaymentPending] = useState(false);
 
   // Form state (simplified - no pricing fields)
   const [clientName, setClientName] = useState("");
@@ -58,7 +65,11 @@ export default function Alquileres() {
   const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
-    try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
+    try {
+      const [dp, pm] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods()]);
+      setDeliveryPeople(dp);
+      setPaymentMethods(pm);
+    } catch (err) { console.error(err); }
   }, []);
 
   const loadRentals = useCallback(async () => {
@@ -92,6 +103,11 @@ export default function Alquileres() {
     setCompleteFloor("1-2");
     setCompletePickedUpBy("");
     setCompleteExitTime("");
+    setCompletePaymentMethod("");
+    setCompletePaymentSplit(false);
+    setCompleteCashAmount(0);
+    setCompleteTransferAmount(0);
+    setCompletePaymentPending(false);
   };
 
   const closeCompleteDialog = () => {
@@ -102,6 +118,11 @@ export default function Alquileres() {
     setCompleteServiceType("");
     setCompleteExtraHours(0);
     setCompleteFloor("1-2");
+    setCompletePaymentMethod("");
+    setCompletePaymentSplit(false);
+    setCompleteCashAmount(0);
+    setCompleteTransferAmount(0);
+    setCompletePaymentPending(false);
   };
 
   const handleSubmit = async () => {
@@ -131,7 +152,16 @@ export default function Alquileres() {
       toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
       return;
     }
+    if (!completePaymentPending && !completePaymentSplit && !completePaymentMethod) {
+      toast({ title: "Selecciona el método de pago", variant: "destructive" });
+      return;
+    }
+    if (completePaymentSplit && (completeCashAmount + completeTransferAmount) !== completeTotal) {
+      toast({ title: "Los montos divididos deben sumar el total", variant: "destructive" });
+      return;
+    }
     try {
+      const isPending = completePaymentPending;
       await updateRentalStatus(completingRental.id, "completed", {
         pickedUpBy: completePickedUpBy,
         exitTime: completeExitTime,
@@ -141,14 +171,21 @@ export default function Alquileres() {
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
         floor: completeFloor,
+        paymentMethod: isPending ? "Pago pendiente" : completePaymentSplit ? "Dividido" : completePaymentMethod,
+        paymentSplit: completePaymentSplit,
+        paymentCashAmount: completePaymentSplit ? completeCashAmount : 0,
+        paymentTransferAmount: completePaymentSplit ? completeTransferAmount : 0,
+        paymentPending: isPending,
       });
-      await insertCashEntry({
-        type: "income", amount: completeTotal,
-        description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})`,
-        category: "alquiler", created_by: user!.id,
-      });
+      if (!isPending) {
+        await insertCashEntry({
+          type: "income", amount: completeTotal,
+          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
+          category: "alquiler", created_by: user!.id,
+        });
+      }
       closeCompleteDialog();
-      toast({ title: "Alquiler completado ✓" });
+      toast({ title: isPending ? "Alquiler completado (pago pendiente) ✓" : "Alquiler completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
     }
@@ -280,6 +317,63 @@ export default function Alquileres() {
               <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
 
+            {/* Payment method */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="paymentPending"
+                  checked={completePaymentPending}
+                  onCheckedChange={(v) => {
+                    setCompletePaymentPending(!!v);
+                    if (v) { setCompletePaymentSplit(false); setCompletePaymentMethod(""); }
+                  }}
+                />
+                <label htmlFor="paymentPending" className="text-sm text-muted-foreground cursor-pointer">Pago pendiente</label>
+              </div>
+              {!completePaymentPending && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="paymentSplit"
+                      checked={completePaymentSplit}
+                      onCheckedChange={(v) => {
+                        setCompletePaymentSplit(!!v);
+                        if (v) { setCompletePaymentMethod(""); }
+                      }}
+                    />
+                    <label htmlFor="paymentSplit" className="text-sm text-muted-foreground cursor-pointer">Pago dividido (efectivo + transferencia)</label>
+                  </div>
+                  {completePaymentSplit ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Efectivo</Label>
+                        <Input type="number" min={0} value={completeCashAmount} onChange={(e) => setCompleteCashAmount(Number(e.target.value))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Transferencia</Label>
+                        <Input type="number" min={0} value={completeTransferAmount} onChange={(e) => setCompleteTransferAmount(Number(e.target.value))} />
+                      </div>
+                      {completeTotal > 0 && (completeCashAmount + completeTransferAmount) !== completeTotal && (
+                        <p className="col-span-2 text-xs text-destructive">
+                          Suma: {formatCOP(completeCashAmount + completeTransferAmount)} — debe ser {formatCOP(completeTotal)}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <Select value={completePaymentMethod} onValueChange={setCompletePaymentMethod}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((pm) => (
+                          <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </>
+              )}
+            </div>
+
             {completeBasePrice > 0 && (
               <div className="rounded-lg bg-secondary p-4 space-y-1">
                 <div className="flex justify-between text-sm">
@@ -333,11 +427,17 @@ export default function Alquileres() {
               {rentals.map((r) => (
                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-sm truncate">{r.client_name}</p>
                       <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-xs">
                         {r.status === "active" ? "Activo" : "Completado"}
                       </Badge>
+                      {r.payment_pending && (
+                        <Badge variant="destructive" className="text-xs">Pago Pendiente</Badge>
+                      )}
+                      {r.payment_method && !r.payment_pending && (
+                        <Badge variant="outline" className="text-xs">{r.payment_method}</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.zone} {r.service_type && `• ${r.service_type}`} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}

@@ -44,6 +44,11 @@ export async function updateRentalStatus(
     floorSurcharge?: number;
     total?: number;
     floor?: string;
+    paymentMethod?: string;
+    paymentSplit?: boolean;
+    paymentCashAmount?: number;
+    paymentTransferAmount?: number;
+    paymentPending?: boolean;
   }
 ) {
   const updates: Record<string, any> = { status };
@@ -55,6 +60,11 @@ export async function updateRentalStatus(
   if (extras?.floorSurcharge !== undefined) updates.floor_surcharge = extras.floorSurcharge;
   if (extras?.total !== undefined) updates.total = extras.total;
   if (extras?.floor) updates.floor_number = extras.floor;
+  if (extras?.paymentMethod !== undefined) updates.payment_method = extras.paymentMethod;
+  if (extras?.paymentSplit !== undefined) updates.payment_split = extras.paymentSplit;
+  if (extras?.paymentCashAmount !== undefined) updates.payment_cash_amount = extras.paymentCashAmount;
+  if (extras?.paymentTransferAmount !== undefined) updates.payment_transfer_amount = extras.paymentTransferAmount;
+  if (extras?.paymentPending !== undefined) updates.payment_pending = extras.paymentPending;
   const { error } = await supabase
     .from("rentals")
     .update(updates)
@@ -250,6 +260,33 @@ export async function updateAppSetting(key: string, value: number) {
     .from("app_settings")
     .update({ value, updated_at: new Date().toISOString() })
     .eq("key", key);
+  if (error) throw error;
+}
+
+// ── Payment Methods ──
+
+export async function fetchPaymentMethods() {
+  const { data, error } = await supabase
+    .from("payment_methods")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertPaymentMethod(name: string) {
+  const { error } = await supabase.from("payment_methods").insert({ name });
+  if (error) throw error;
+}
+
+export async function deletePaymentMethod(id: string) {
+  const { error } = await supabase.from("payment_methods").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateRentalPaymentPending(id: string, pending: boolean) {
+  const { error } = await supabase.from("rentals").update({ payment_pending: pending }).eq("id", id);
   if (error) throw error;
 }
 

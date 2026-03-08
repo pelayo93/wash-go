@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Save, MapPin, DollarSign, Edit2 } from "lucide-react";
+import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import {
   fetchZones, insertZone, updateZone, deleteZone,
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
   fetchAppSettings, updateAppSetting,
+  fetchPaymentMethods, insertPaymentMethod, deletePaymentMethod,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +37,10 @@ export default function Servicios() {
   const [editPiso34, setEditPiso34] = useState("");
   const [editPiso56, setEditPiso56] = useState("");
 
+  // Payment methods
+  const [pmList, setPmList] = useState<any[]>([]);
+  const [newPmName, setNewPmName] = useState("");
+
   // New zone
   const [newZoneName, setNewZoneName] = useState("");
 
@@ -50,12 +55,13 @@ export default function Servicios() {
 
   const load = useCallback(async () => {
     try {
-      const [z, p, settings] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings()]);
+      const [z, p, settings, pm] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings(), fetchPaymentMethods()]);
       setZones(z);
       setPrices(p);
       setExtraHora(settings.extra_hora ?? 3000);
       setPiso34(settings.piso_3_4 ?? 1000);
       setPiso56(settings.piso_5_6 ?? 2000);
+      setPmList(pm);
     } catch (err) {
       console.error(err);
     } finally {
@@ -162,6 +168,66 @@ export default function Servicios() {
               <p className="text-muted-foreground">Piso 5°-6°</p>
               <p className="font-semibold">+{formatCOP(piso56)}</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment methods */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" /> Métodos de Pago
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newPmName}
+              onChange={(e) => setNewPmName(e.target.value)}
+              placeholder="Nuevo método de pago"
+              onKeyDown={(e) => e.key === "Enter" && (async () => {
+                if (!newPmName.trim()) return;
+                try {
+                  await insertPaymentMethod(newPmName.trim());
+                  setNewPmName("");
+                  await load();
+                  toast({ title: "Método agregado ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              })()}
+            />
+            <Button size="sm" onClick={async () => {
+              if (!newPmName.trim()) return;
+              try {
+                await insertPaymentMethod(newPmName.trim());
+                setNewPmName("");
+                await load();
+                toast({ title: "Método agregado ✓" });
+              } catch (err: any) {
+                toast({ title: err.message || "Error", variant: "destructive" });
+              }
+            }}>
+              <Plus className="h-4 w-4 mr-1" /> Agregar
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {pmList.map((pm) => (
+              <div key={pm.id} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5">
+                <span className="text-sm font-medium">{pm.name}</span>
+                <button onClick={async () => {
+                  try {
+                    await deletePaymentMethod(pm.id);
+                    await load();
+                    toast({ title: "Método eliminado ✓" });
+                  } catch (err: any) {
+                    toast({ title: err.message || "Error", variant: "destructive" });
+                  }
+                }} className="text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
