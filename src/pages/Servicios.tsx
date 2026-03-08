@@ -27,6 +27,15 @@ export default function Servicios() {
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Surcharges
+  const [extraHora, setExtraHora] = useState(3000);
+  const [piso34, setPiso34] = useState(1000);
+  const [piso56, setPiso56] = useState(2000);
+  const [editingSurcharges, setEditingSurcharges] = useState(false);
+  const [editExtraHora, setEditExtraHora] = useState("");
+  const [editPiso34, setEditPiso34] = useState("");
+  const [editPiso56, setEditPiso56] = useState("");
+
   // New zone
   const [newZoneName, setNewZoneName] = useState("");
 
