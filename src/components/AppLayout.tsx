@@ -6,6 +6,7 @@ import {
   Wallet,
   BarChart3,
   Users,
+  Settings,
   Menu,
   X,
   LogOut,
