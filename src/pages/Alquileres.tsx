@@ -413,19 +413,46 @@ export default function Alquileres() {
       {/* Rental list */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="section-title flex items-center gap-2">
-            <WashingMachine className="h-5 w-5 text-primary" />
-            Historial de Alquileres
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <CardTitle className="section-title flex items-center gap-2">
+              <WashingMachine className="h-5 w-5 text-primary" />
+              Historial de Alquileres
+            </CardTitle>
+            <div className="flex gap-1 flex-wrap">
+              {([
+                ["all", "Todos"],
+                ["active", "Activos"],
+                ["completed", "Completados"],
+                ["pending", "Pendientes"],
+              ] as const).map(([key, label]) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={filter === key ? "default" : "outline"}
+                  className="text-xs h-7"
+                  onClick={() => setFilter(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>
-          ) : rentals.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No hay alquileres registrados</p>
-          ) : (
+          {(() => {
+            const filtered = rentals.filter((r) => {
+              if (filter === "active") return r.status === "active";
+              if (filter === "completed") return r.status === "completed" && !r.payment_pending;
+              if (filter === "pending") return r.payment_pending;
+              return true;
+            });
+            return loading ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No hay alquileres con este filtro</p>
+            ) : (
             <div className="space-y-3">
-              {rentals.map((r) => (
+              {filtered.map((r) => (
                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
