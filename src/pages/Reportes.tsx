@@ -607,6 +607,73 @@ export default function Reportes() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Zone detail dialog */}
+      <Dialog open={!!selectedZone} onOpenChange={(open) => { if (!open) setSelectedZone(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Detalle de Zona
+            </DialogTitle>
+          </DialogHeader>
+          {selectedZone && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-secondary p-4 space-y-2">
+                <p className="font-semibold text-base">{selectedZone}</p>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Servicios</p>
+                    <p className="text-lg font-bold">{zoneSummary.count}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-primary">{formatCOP(zoneSummary.total)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Detalle de servicios</p>
+                {zoneRentals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Sin servicios en este rango</p>
+                ) : (
+                  zoneRentals.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{r.client_name}</p>
+                          <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                            {r.status === "active" ? "Activo" : "Completado"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {r.service_type || "-"} {r.delivered_by && `• ${r.delivered_by}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("es-CO")}
+                        </p>
+                      </div>
+                      <span className="font-semibold text-sm whitespace-nowrap">{formatCOP(r.total)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-border">
+                <Button size="sm" variant="outline" onClick={handleExportZoneDetailCSV}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleExportZoneDetailPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                </Button>
+                <DialogClose asChild>
+                  <Button size="sm">Cerrar</Button>
+                </DialogClose>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
