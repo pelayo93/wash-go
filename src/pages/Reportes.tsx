@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { formatCOP } from "@/lib/data";
 import { fetchCashEntries, fetchDailyCloses, fetchRentals } from "@/lib/supabase-data";
 import { exportToCSV, exportToPDF } from "@/lib/exportUtils";
