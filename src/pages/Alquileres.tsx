@@ -374,6 +374,7 @@ export default function Alquileres() {
               )}
             </div>
 
+            {completeBasePrice > 0 && (
               <div className="rounded-lg bg-secondary p-4 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Base ({completeServiceType})</span>
