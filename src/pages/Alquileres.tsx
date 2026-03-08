@@ -65,7 +65,11 @@ export default function Alquileres() {
   const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
-    try { setDeliveryPeople(await fetchDeliveryPeople()); } catch (err) { console.error(err); }
+    try {
+      const [dp, pm] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods()]);
+      setDeliveryPeople(dp);
+      setPaymentMethods(pm);
+    } catch (err) { console.error(err); }
   }, []);
 
   const loadRentals = useCallback(async () => {
