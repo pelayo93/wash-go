@@ -386,12 +386,50 @@ export default function Reportes() {
               ) : (
                 <div className="space-y-2">
                   {byZone.map(([zone, data]) => (
-                    <div key={zone} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <div>
-                        <p className="font-medium text-sm">{zone}</p>
-                        <p className="text-xs text-muted-foreground">{data.count} servicios</p>
+                    <div key={zone} className="rounded-lg bg-secondary/50 overflow-hidden">
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => setExpandedZone(expandedZone === zone ? null : zone)}
+                          >
+                            {expandedZone === zone
+                              ? <ChevronUp className="h-4 w-4" />
+                              : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                          <div>
+                            <p className="font-medium text-sm">{zone}</p>
+                            <p className="text-xs text-muted-foreground">{data.count} servicios</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedZone(zone)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" /> Detalle
+                          </Button>
+                        </div>
                       </div>
-                      <span className="font-bold text-sm">{formatCOP(data.total)}</span>
+                      {expandedZone === zone && zoneServices[zone] && (
+                        <div className="px-3 pb-3 space-y-1 border-t border-border pt-2 ml-8">
+                          {zoneServices[zone].map((s, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-background/50">
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">{s.client_name}</span>
+                                <span className="text-muted-foreground"> • {s.service_type} • {s.delivered_by}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs">
+                                <Badge variant={s.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                                  {s.status === "active" ? "Activo" : "Completado"}
+                                </Badge>
+                                <span className="text-muted-foreground">{s.date}</span>
+                                <span className="font-semibold">{formatCOP(s.total)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
