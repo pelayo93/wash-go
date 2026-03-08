@@ -97,7 +97,25 @@ export default function Reportes() {
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
   }, [filteredRentals]);
 
-  // Rentals for selected person
+  // Services breakdown per person: { personName: [{ zone, serviceType, total, clientName, date }] }
+  const personServices = useMemo(() => {
+    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string }[]> = {};
+    filteredRentals.forEach((r) => {
+      const entry = {
+        zone: r.zone,
+        service_type: r.service_type || "-",
+        total: r.total,
+        client_name: r.client_name,
+        date: new Date(r.created_at).toLocaleDateString("es-CO"),
+      };
+      if (r.delivered_by) {
+        if (!map[r.delivered_by]) map[r.delivered_by] = [];
+        map[r.delivered_by].push({ ...entry });
+      }
+    });
+    return map;
+  }, [filteredRentals]);
+
   const personRentals = useMemo(() => {
     if (!selectedPerson) return [];
     return filteredRentals.filter(
