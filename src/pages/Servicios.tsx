@@ -318,6 +318,46 @@ export default function Servicios() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit surcharges dialog */}
+      <Dialog open={editingSurcharges} onOpenChange={setEditingSurcharges}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Editar Recargos Globales</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Hora Extra (COP)</Label>
+              <Input type="number" min={0} value={editExtraHora} onChange={(e) => setEditExtraHora(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Recargo Piso 3°-4° (COP)</Label>
+              <Input type="number" min={0} value={editPiso34} onChange={(e) => setEditPiso34(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Recargo Piso 5°-6° (COP)</Label>
+              <Input type="number" min={0} value={editPiso56} onChange={(e) => setEditPiso56(e.target.value)} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+              <Button onClick={async () => {
+                try {
+                  await Promise.all([
+                    updateAppSetting("extra_hora", Number(editExtraHora)),
+                    updateAppSetting("piso_3_4", Number(editPiso34)),
+                    updateAppSetting("piso_5_6", Number(editPiso56)),
+                  ]);
+                  setEditingSurcharges(false);
+                  await load();
+                  toast({ title: "Recargos actualizados ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              }}>
+                <Save className="h-4 w-4 mr-1" /> Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
