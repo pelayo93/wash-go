@@ -170,6 +170,36 @@ export type Database = {
         }
         Relationships: []
       }
+      price_change_log: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          item_name: string
+          new_value: number
+          old_value: number
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          new_value?: number
+          old_value?: number
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          new_value?: number
+          old_value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
