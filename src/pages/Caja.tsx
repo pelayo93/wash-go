@@ -92,6 +92,23 @@ export default function Caja() {
     } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
+  const handleGasSale = async () => {
+    if (closed) { toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" }); return; }
+    const amt = Number(gasPrice);
+    if (!amt || amt <= 0) { toast({ title: "Ingresa el precio del gas", variant: "destructive" }); return; }
+    try {
+      await insertCashEntry({
+        type: "income", amount: amt,
+        description: `Venta de Gas${gasNote ? ` (${gasNote})` : ""}`,
+        category: "gas", created_by: user!.id,
+      });
+      await logAudit("create", undefined, { type: "income", amount: amt, description: `Venta de Gas${gasNote ? ` (${gasNote})` : ""}` });
+      await refresh();
+      setGasPrice(""); setGasNote(""); setShowGasForm(false);
+      toast({ title: "Venta de gas registrada ✓" });
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
+  };
+
   const handleDelete = async (id: string, entry: any) => {
     try {
       await deleteCashEntry(id);
