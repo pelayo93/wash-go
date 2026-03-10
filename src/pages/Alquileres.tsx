@@ -190,7 +190,7 @@ export default function Alquileres() {
       if (!isPending) {
         await insertCashEntry({
           type: "income", amount: completeTotal,
-          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
+          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
           category: "alquiler", created_by: user!.id,
         });
       }
