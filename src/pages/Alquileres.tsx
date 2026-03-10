@@ -440,12 +440,13 @@ export default function Alquileres() {
                     <span>{formatCOP(completeGasPrice)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
-                  <span>Total</span>
-                  <span className="text-primary">{formatCOP(completeTotal)}</span>
-                </div>
               </div>
             )}
+
+            <div className="flex justify-between font-bold text-lg pt-3 pb-1 border-t border-border">
+              <span>Total a cobrar</span>
+              <span className="text-primary">{formatCOP(completeTotal)}</span>
+            </div>
 
             <div className="flex gap-2 justify-end">
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
