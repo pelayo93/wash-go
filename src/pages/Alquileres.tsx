@@ -48,6 +48,9 @@ export default function Alquileres() {
   const [completeCashAmount, setCompleteCashAmount] = useState(0);
   const [completeTransferAmount, setCompleteTransferAmount] = useState(0);
   const [completePaymentPending, setCompletePaymentPending] = useState(false);
+  const [completeGasRequested, setCompleteGasRequested] = useState(false);
+  const [completeGasNote, setCompleteGasNote] = useState("");
+  const [completeGasPrice, setCompleteGasPrice] = useState(0);
 
   // Form state (simplified - no pricing fields)
   const [clientName, setClientName] = useState("");
@@ -63,7 +66,7 @@ export default function Alquileres() {
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
   const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
-  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
+  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge + (completeGasRequested ? completeGasPrice : 0);
 
   const loadDeliveryPeople = useCallback(async () => {
     try {
@@ -109,6 +112,9 @@ export default function Alquileres() {
     setCompleteCashAmount(0);
     setCompleteTransferAmount(0);
     setCompletePaymentPending(false);
+    setCompleteGasRequested(false);
+    setCompleteGasNote("");
+    setCompleteGasPrice(0);
   };
 
   const closeCompleteDialog = () => {
@@ -124,6 +130,9 @@ export default function Alquileres() {
     setCompleteCashAmount(0);
     setCompleteTransferAmount(0);
     setCompletePaymentPending(false);
+    setCompleteGasRequested(false);
+    setCompleteGasNote("");
+    setCompleteGasPrice(0);
   };
 
   const handleSubmit = async () => {
@@ -181,7 +190,7 @@ export default function Alquileres() {
       if (!isPending) {
         await insertCashEntry({
           type: "income", amount: completeTotal,
-          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
+          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
           category: "alquiler", created_by: user!.id,
         });
       }
@@ -318,6 +327,38 @@ export default function Alquileres() {
               <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
 
+            {/* Gas option */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="gasRequested"
+                  checked={completeGasRequested}
+                  onCheckedChange={(v) => {
+                    setCompleteGasRequested(!!v);
+                    if (!v) { setCompleteGasNote(""); setCompleteGasPrice(0); }
+                  }}
+                />
+                <label htmlFor="gasRequested" className="text-sm font-medium cursor-pointer">¿El cliente solicitó Gas?</label>
+              </div>
+              {completeGasRequested && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nota (ej: libras, tipo)</Label>
+                    <textarea
+                      className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={completeGasNote}
+                      onChange={(e) => setCompleteGasNote(e.target.value)}
+                      placeholder="Ej: 20 libras, gas propano..."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Precio del Gas</Label>
+                    <Input type="number" min={0} value={completeGasPrice} onChange={(e) => setCompleteGasPrice(Number(e.target.value))} placeholder="0" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Payment method */}
             <div className="space-y-3 rounded-lg border border-border p-3">
               <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
@@ -391,6 +432,12 @@ export default function Alquileres() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Recargo piso</span>
                     <span>{formatCOP(completeFloorSurcharge)}</span>
+                  </div>
+                )}
+                {completeGasRequested && completeGasPrice > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Gas{completeGasNote && ` (${completeGasNote})`}</span>
+                    <span>{formatCOP(completeGasPrice)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
