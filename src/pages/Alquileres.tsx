@@ -434,6 +434,12 @@ export default function Alquileres() {
                     <span>{formatCOP(completeFloorSurcharge)}</span>
                   </div>
                 )}
+                {completeGasRequested && completeGasPrice > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Gas{completeGasNote && ` (${completeGasNote})`}</span>
+                    <span>{formatCOP(completeGasPrice)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
                   <span>Total</span>
                   <span className="text-primary">{formatCOP(completeTotal)}</span>
