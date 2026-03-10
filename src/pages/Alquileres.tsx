@@ -60,6 +60,12 @@ export default function Alquileres() {
   const [floorNumber, setFloorNumber] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
+  // Solo Gas form state
+  const [soloGas, setSoloGas] = useState(false);
+  const [soloGasNote, setSoloGasNote] = useState("");
+  const [soloGasPrice, setSoloGasPrice] = useState(0);
+  const [soloGasPaymentMethod, setSoloGasPaymentMethod] = useState("");
+  const [soloGasPaymentPending, setSoloGasPaymentPending] = useState(false);
 
   // Complete dialog pricing
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
