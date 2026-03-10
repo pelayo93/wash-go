@@ -327,6 +327,38 @@ export default function Alquileres() {
               <Input type="time" value={completeExitTime} onChange={(e) => setCompleteExitTime(e.target.value)} />
             </div>
 
+            {/* Gas option */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="gasRequested"
+                  checked={completeGasRequested}
+                  onCheckedChange={(v) => {
+                    setCompleteGasRequested(!!v);
+                    if (!v) { setCompleteGasNote(""); setCompleteGasPrice(0); }
+                  }}
+                />
+                <label htmlFor="gasRequested" className="text-sm font-medium cursor-pointer">¿El cliente solicitó Gas?</label>
+              </div>
+              {completeGasRequested && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nota (ej: libras, tipo)</Label>
+                    <textarea
+                      className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={completeGasNote}
+                      onChange={(e) => setCompleteGasNote(e.target.value)}
+                      placeholder="Ej: 20 libras, gas propano..."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Precio del Gas</Label>
+                    <Input type="number" min={0} value={completeGasPrice} onChange={(e) => setCompleteGasPrice(Number(e.target.value))} placeholder="0" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Payment method */}
             <div className="space-y-3 rounded-lg border border-border p-3">
               <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
