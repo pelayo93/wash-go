@@ -38,6 +38,11 @@ export default function Caja() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
 
+  // Quick gas sale
+  const [showGasForm, setShowGasForm] = useState(false);
+  const [gasNote, setGasNote] = useState("");
+  const [gasPrice, setGasPrice] = useState("");
+
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
