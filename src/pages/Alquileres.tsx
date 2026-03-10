@@ -102,6 +102,8 @@ export default function Alquileres() {
     setClientName(""); setPhone(""); setAddress("");
     setSelectedZone(""); setFloorNumber("");
     setDeliveredBy(""); setEntryTime("");
+    setSoloGas(false); setSoloGasNote(""); setSoloGasPrice(0);
+    setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false);
     setShowForm(false);
   };
 
