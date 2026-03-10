@@ -321,10 +321,74 @@ export default function Alquileres() {
               </div>
             </div>
 
+            {/* Solo Gas option */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="soloGas"
+                  checked={soloGas}
+                  onCheckedChange={(v) => {
+                    setSoloGas(!!v);
+                    if (!v) { setSoloGasNote(""); setSoloGasPrice(0); setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false); }
+                  }}
+                />
+                <label htmlFor="soloGas" className="text-sm font-medium cursor-pointer flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5 text-orange-500" /> Solo Gas (sin alquiler)
+                </label>
+              </div>
+              {soloGas && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nota (ej: libras, tipo)</Label>
+                    <textarea
+                      className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={soloGasNote}
+                      onChange={(e) => setSoloGasNote(e.target.value)}
+                      placeholder="Ej: 20 libras, gas propano..."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Precio del Gas</Label>
+                    <Input type="number" min={0} value={soloGasPrice} onChange={(e) => setSoloGasPrice(Number(e.target.value))} placeholder="0" />
+                  </div>
+                  {soloGasPrice > 0 && (
+                    <div className="flex justify-between font-bold text-sm pt-2 border-t border-border">
+                      <span>Total</span>
+                      <span className="text-primary">{formatCOP(soloGasPrice)}</span>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-xs flex items-center gap-1"><CreditCard className="h-3 w-3" /> Método de Pago</Label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="soloGasPending"
+                        checked={soloGasPaymentPending}
+                        onCheckedChange={(v) => {
+                          setSoloGasPaymentPending(!!v);
+                          if (v) setSoloGasPaymentMethod("");
+                        }}
+                      />
+                      <label htmlFor="soloGasPending" className="text-xs text-muted-foreground cursor-pointer">Pago pendiente</label>
+                    </div>
+                    {!soloGasPaymentPending && (
+                      <Select value={soloGasPaymentMethod} onValueChange={setSoloGasPaymentMethod}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
+                        <SelectContent>
+                          {paymentMethods.map((pm) => (
+                            <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
               <Button onClick={handleSubmit}>
-                <Check className="h-4 w-4 mr-1" /> Registrar
+                <Check className="h-4 w-4 mr-1" /> {soloGas ? "Registrar Gas" : "Registrar"}
               </Button>
             </div>
           </CardContent>
