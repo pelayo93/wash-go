@@ -130,6 +130,9 @@ export default function Alquileres() {
     setCompleteCashAmount(0);
     setCompleteTransferAmount(0);
     setCompletePaymentPending(false);
+    setCompleteGasRequested(false);
+    setCompleteGasNote("");
+    setCompleteGasPrice(0);
   };
 
   const handleSubmit = async () => {
