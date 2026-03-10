@@ -48,6 +48,9 @@ export default function Alquileres() {
   const [completeCashAmount, setCompleteCashAmount] = useState(0);
   const [completeTransferAmount, setCompleteTransferAmount] = useState(0);
   const [completePaymentPending, setCompletePaymentPending] = useState(false);
+  const [completeGasRequested, setCompleteGasRequested] = useState(false);
+  const [completeGasNote, setCompleteGasNote] = useState("");
+  const [completeGasPrice, setCompleteGasPrice] = useState(0);
 
   // Form state (simplified - no pricing fields)
   const [clientName, setClientName] = useState("");
