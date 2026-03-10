@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ArrowUpRight, ArrowDownRight, Plus, Lock, TrendingUp, TrendingDown,
-  Pencil, Trash2, Check, X, ClipboardList,
+  Pencil, Trash2, Check, X, ClipboardList, Flame,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,11 @@ export default function Caja() {
   const [type, setType] = useState<"income" | "expense">("income");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+
+  // Quick gas sale
+  const [showGasForm, setShowGasForm] = useState(false);
+  const [gasNote, setGasNote] = useState("");
+  const [gasPrice, setGasPrice] = useState("");
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,6 +89,23 @@ export default function Caja() {
       await refresh();
       setAmount(""); setDescription("");
       toast({ title: type === "income" ? "Entrada registrada ✓" : "Salida registrada ✓" });
+    } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
+  };
+
+  const handleGasSale = async () => {
+    if (closed) { toast({ title: "La caja de hoy ya fue cerrada", variant: "destructive" }); return; }
+    const amt = Number(gasPrice);
+    if (!amt || amt <= 0) { toast({ title: "Ingresa el precio del gas", variant: "destructive" }); return; }
+    try {
+      await insertCashEntry({
+        type: "income", amount: amt,
+        description: `Venta de Gas${gasNote ? ` (${gasNote})` : ""}`,
+        category: "gas", created_by: user!.id,
+      });
+      await logAudit("create", undefined, { type: "income", amount: amt, description: `Venta de Gas${gasNote ? ` (${gasNote})` : ""}` });
+      await refresh();
+      setGasPrice(""); setGasNote(""); setShowGasForm(false);
+      toast({ title: "Venta de gas registrada ✓" });
     } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
@@ -288,6 +310,46 @@ export default function Caja() {
               Registrar {type === "income" ? "Entrada" : "Salida"}
             </Button>
           </CardContent>
+        </Card>
+      )}
+
+      {/* Quick gas sale */}
+      {!closed && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="section-title flex items-center gap-2">
+                <Flame className="h-5 w-5 text-orange-500" /> Venta Rápida de Gas
+              </CardTitle>
+              {!showGasForm && (
+                <Button size="sm" variant="outline" onClick={() => setShowGasForm(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Registrar
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          {showGasForm && (
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Precio del Gas</Label>
+                  <Input type="number" value={gasPrice} onChange={(e) => setGasPrice(e.target.value)} placeholder="0" min={0} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nota (opcional)</Label>
+                  <Input value={gasNote} onChange={(e) => setGasNote(e.target.value)} placeholder="Ej: 20 libras, propano..." />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleGasSale} size="sm">
+                  <Check className="h-4 w-4 mr-1" /> Registrar Gas
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setShowGasForm(false); setGasPrice(""); setGasNote(""); }}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
 
