@@ -66,7 +66,7 @@ export default function Alquileres() {
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
   const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
-  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge;
+  const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge + (completeGasRequested ? completeGasPrice : 0);
 
   const loadDeliveryPeople = useCallback(async () => {
     try {
