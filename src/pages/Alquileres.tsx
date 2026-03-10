@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard,
+  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
