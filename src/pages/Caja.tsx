@@ -313,6 +313,46 @@ export default function Caja() {
         </Card>
       )}
 
+      {/* Quick gas sale */}
+      {!closed && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="section-title flex items-center gap-2">
+                <Flame className="h-5 w-5 text-orange-500" /> Venta Rápida de Gas
+              </CardTitle>
+              {!showGasForm && (
+                <Button size="sm" variant="outline" onClick={() => setShowGasForm(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Registrar
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          {showGasForm && (
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Precio del Gas</Label>
+                  <Input type="number" value={gasPrice} onChange={(e) => setGasPrice(e.target.value)} placeholder="0" min={0} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nota (opcional)</Label>
+                  <Input value={gasNote} onChange={(e) => setGasNote(e.target.value)} placeholder="Ej: 20 libras, propano..." />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleGasSale} size="sm">
+                  <Check className="h-4 w-4 mr-1" /> Registrar Gas
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setShowGasForm(false); setGasPrice(""); setGasNote(""); }}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {/* Today's entries */}
       <Card>
         <CardHeader className="pb-3">
