@@ -277,7 +277,7 @@ export default function Alquileres() {
 
       {/* Complete rental dialog */}
       <Dialog open={!!completingRental} onOpenChange={(open) => { if (!open) closeCompleteDialog(); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {completingRental && (
