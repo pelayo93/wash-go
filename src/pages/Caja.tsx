@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ArrowUpRight, ArrowDownRight, Plus, Lock, TrendingUp, TrendingDown,
-  Pencil, Trash2, Check, X, ClipboardList,
+  Pencil, Trash2, Check, X, ClipboardList, Flame,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
