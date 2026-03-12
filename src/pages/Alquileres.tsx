@@ -340,30 +340,7 @@ export default function Alquileres() {
                       <span className="text-primary">{formatCOP(soloGasPrice)}</span>
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label className="text-xs flex items-center gap-1"><CreditCard className="h-3 w-3" /> Método de Pago</Label>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="soloGasPending"
-                        checked={soloGasPaymentPending}
-                        onCheckedChange={(v) => {
-                          setSoloGasPaymentPending(!!v);
-                          if (v) setSoloGasPaymentMethod("");
-                        }}
-                      />
-                      <label htmlFor="soloGasPending" className="text-xs text-muted-foreground cursor-pointer">Pago pendiente</label>
-                    </div>
-                    {!soloGasPaymentPending && (
-                      <Select value={soloGasPaymentMethod} onValueChange={setSoloGasPaymentMethod}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
-                        <SelectContent>
-                          {paymentMethods.map((pm) => (
-                            <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">El pago se define al completar el pedido</p>
                 </div>
               )}
             </div>
