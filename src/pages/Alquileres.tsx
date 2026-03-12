@@ -191,8 +191,9 @@ export default function Alquileres() {
   };
 
   const completeRental = async () => {
-    if (!completingRental || !completeServiceType) {
-      toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
+    const isSoloGasOnly = !completeServiceType && completeGasRequested && completeGasPrice > 0;
+    if (!completingRental || (!completeServiceType && !isSoloGasOnly)) {
+      toast({ title: "Selecciona un tipo de servicio o registra gas", variant: "destructive" });
       return;
     }
     if (!completePaymentPending && !completePaymentSplit && !completePaymentMethod) {
@@ -205,11 +206,16 @@ export default function Alquileres() {
     }
     try {
       const isPending = completePaymentPending;
+      const finalServiceType = isSoloGasOnly ? "Solo Gas" : completeServiceType;
+      const description = isSoloGasOnly
+        ? `Solo Gas - ${completingRental.client_name} (${completeZone})${completeGasNote ? ` (${completeGasNote})` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`
+        : `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`;
+
       await updateRentalStatus(completingRental.id, "completed", {
         pickedUpBy: completePickedUpBy,
         exitTime: completeExitTime,
-        serviceType: completeServiceType,
-        price: completeBasePrice,
+        serviceType: finalServiceType,
+        price: isSoloGasOnly ? completeGasPrice : completeBasePrice,
         extraHours: completeExtraHours,
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
@@ -223,12 +229,12 @@ export default function Alquileres() {
       if (!isPending) {
         await insertCashEntry({
           type: "income", amount: completeTotal,
-          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
-          category: "alquiler", created_by: user!.id,
+          description,
+          category: isSoloGasOnly ? "gas" : "alquiler", created_by: user!.id,
         });
       }
       closeCompleteDialog();
-      toast({ title: isPending ? "Alquiler completado (pago pendiente) ✓" : "Alquiler completado ✓" });
+      toast({ title: isPending ? "Completado (pago pendiente) ✓" : "Completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
     }
