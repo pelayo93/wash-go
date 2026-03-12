@@ -120,9 +120,11 @@ export default function Alquileres() {
     setCompleteCashAmount(0);
     setCompleteTransferAmount(0);
     setCompletePaymentPending(false);
-    setCompleteGasRequested(false);
+    // Pre-fill gas if this is a Solo Gas rental
+    const isSoloGas = rental.service_type === "Solo Gas";
+    setCompleteGasRequested(isSoloGas);
     setCompleteGasNote("");
-    setCompleteGasPrice(0);
+    setCompleteGasPrice(isSoloGas ? rental.price : 0);
   };
 
   const closeCompleteDialog = () => {
@@ -153,44 +155,19 @@ export default function Alquileres() {
         toast({ title: "Ingresa el precio del gas", variant: "destructive" });
         return;
       }
-      if (!soloGasPaymentPending && !soloGasPaymentMethod) {
-        toast({ title: "Selecciona el método de pago", variant: "destructive" });
-        return;
-      }
       try {
+        // Register as active so it can be completed later with additional services
         await insertRental({
           client_name: clientName, phone, address,
           zone: selectedZone, service_type: "Solo Gas",
           price: soloGasPrice, extra_hours: 0,
           floor_surcharge: 0, total: soloGasPrice,
           floor_number: floorNumber, delivered_by: deliveredBy,
-          picked_up_by: deliveredBy, entry_time: entryTime,
-          exit_time: entryTime, created_by: user!.id,
+          picked_up_by: "", entry_time: entryTime,
+          exit_time: "", created_by: user!.id,
         });
-        // Update status to completed
-        const { data: lastRental } = await supabase
-          .from("rentals")
-          .select("id")
-          .eq("client_name", clientName)
-          .eq("service_type", "Solo Gas")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        if (lastRental) {
-          await updateRentalStatus(lastRental.id, "completed", {
-            paymentMethod: soloGasPaymentPending ? "Pago pendiente" : soloGasPaymentMethod,
-            paymentPending: soloGasPaymentPending,
-          });
-        }
-        if (!soloGasPaymentPending) {
-          await insertCashEntry({
-            type: "income", amount: soloGasPrice,
-            description: `Solo Gas - ${clientName} (${selectedZone})${soloGasNote ? ` (${soloGasNote})` : ""} [${soloGasPaymentMethod}]`,
-            category: "gas", created_by: user!.id,
-          });
-        }
         resetForm();
-        toast({ title: soloGasPaymentPending ? "Venta de gas registrada (pago pendiente) ✓" : "Venta de gas registrada ✓" });
+        toast({ title: "Pedido de gas registrado ✓ — Usa 'Completar' para finalizar o agregar servicios" });
       } catch (err: any) {
         toast({ title: err.message || "Error al registrar", variant: "destructive" });
       }
@@ -214,8 +191,9 @@ export default function Alquileres() {
   };
 
   const completeRental = async () => {
-    if (!completingRental || !completeServiceType) {
-      toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
+    const isSoloGasOnly = !completeServiceType && completeGasRequested && completeGasPrice > 0;
+    if (!completingRental || (!completeServiceType && !isSoloGasOnly)) {
+      toast({ title: "Selecciona un tipo de servicio o registra gas", variant: "destructive" });
       return;
     }
     if (!completePaymentPending && !completePaymentSplit && !completePaymentMethod) {
@@ -228,11 +206,16 @@ export default function Alquileres() {
     }
     try {
       const isPending = completePaymentPending;
+      const finalServiceType = isSoloGasOnly ? "Solo Gas" : completeServiceType;
+      const description = isSoloGasOnly
+        ? `Solo Gas - ${completingRental.client_name} (${completeZone})${completeGasNote ? ` (${completeGasNote})` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`
+        : `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`;
+
       await updateRentalStatus(completingRental.id, "completed", {
         pickedUpBy: completePickedUpBy,
         exitTime: completeExitTime,
-        serviceType: completeServiceType,
-        price: completeBasePrice,
+        serviceType: finalServiceType,
+        price: isSoloGasOnly ? completeGasPrice : completeBasePrice,
         extraHours: completeExtraHours,
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
@@ -246,12 +229,12 @@ export default function Alquileres() {
       if (!isPending) {
         await insertCashEntry({
           type: "income", amount: completeTotal,
-          description: `Alquiler ${completeServiceType} - ${completingRental.client_name} (${completeZone})${completeGasRequested && completeGasPrice > 0 ? ` + Gas ${formatCOP(completeGasPrice)}${completeGasNote ? ` (${completeGasNote})` : ""}` : ""}${completePaymentSplit ? " [Dividido]" : ` [${completePaymentMethod}]`}`,
-          category: "alquiler", created_by: user!.id,
+          description,
+          category: isSoloGasOnly ? "gas" : "alquiler", created_by: user!.id,
         });
       }
       closeCompleteDialog();
-      toast({ title: isPending ? "Alquiler completado (pago pendiente) ✓" : "Alquiler completado ✓" });
+      toast({ title: isPending ? "Completado (pago pendiente) ✓" : "Completado ✓" });
     } catch (err: any) {
       toast({ title: err.message || "Error", variant: "destructive" });
     }
@@ -357,30 +340,7 @@ export default function Alquileres() {
                       <span className="text-primary">{formatCOP(soloGasPrice)}</span>
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label className="text-xs flex items-center gap-1"><CreditCard className="h-3 w-3" /> Método de Pago</Label>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="soloGasPending"
-                        checked={soloGasPaymentPending}
-                        onCheckedChange={(v) => {
-                          setSoloGasPaymentPending(!!v);
-                          if (v) setSoloGasPaymentMethod("");
-                        }}
-                      />
-                      <label htmlFor="soloGasPending" className="text-xs text-muted-foreground cursor-pointer">Pago pendiente</label>
-                    </div>
-                    {!soloGasPaymentPending && (
-                      <Select value={soloGasPaymentMethod} onValueChange={setSoloGasPaymentMethod}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
-                        <SelectContent>
-                          {paymentMethods.map((pm) => (
-                            <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">El pago se define al completar el pedido</p>
                 </div>
               )}
             </div>
@@ -398,17 +358,24 @@ export default function Alquileres() {
       {/* Complete rental dialog */}
       <Dialog open={!!completingRental} onOpenChange={(open) => { if (!open) closeCompleteDialog(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>
+                {completingRental?.service_type === "Solo Gas" ? "Completar Pedido (Gas)" : "Completar Alquiler"}
+              </DialogTitle>
+            </DialogHeader>
           <div className="space-y-4 py-2">
             {completingRental && (
               <p className="text-sm text-muted-foreground">
                 Cliente: <span className="font-medium text-foreground">{completingRental.client_name}</span> • {completingRental.zone}
+                {completingRental.service_type === "Solo Gas" && (
+                  <span className="ml-2"><Badge variant="outline" className="text-xs">Gas registrado: {formatCOP(completingRental.price)}</Badge></span>
+                )}
               </p>
             )}
             <div className="space-y-2">
-              <Label>Tipo de Servicio</Label>
+              <Label>Tipo de Servicio {completeGasRequested ? "(opcional si solo es gas)" : ""}</Label>
               <Select value={completeServiceType} onValueChange={setCompleteServiceType}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={completeGasRequested ? "Sin servicio adicional" : "Seleccionar servicio"} /></SelectTrigger>
                 <SelectContent>
                   {completeServiceTypes.map((st) => (
                     <SelectItem key={st} value={st}>{st} - {formatCOP(completeZoneObj!.prices[st])}</SelectItem>
