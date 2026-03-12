@@ -247,6 +247,46 @@ export default function Alquileres() {
     }
   };
 
+  const openCollectDialog = (rental: any) => {
+    setCollectingRental(rental);
+    setCollectPaymentMethod("");
+    setCollectPaymentSplit(false);
+    setCollectCashAmount(0);
+    setCollectTransferAmount(0);
+  };
+
+  const collectPayment = async () => {
+    if (!collectingRental) return;
+    if (!collectPaymentSplit && !collectPaymentMethod) {
+      toast({ title: "Selecciona el método de pago", variant: "destructive" });
+      return;
+    }
+    if (collectPaymentSplit && (collectCashAmount + collectTransferAmount) !== collectingRental.total) {
+      toast({ title: "Los montos divididos deben sumar el total", variant: "destructive" });
+      return;
+    }
+    try {
+      await updateRentalStatus(collectingRental.id, "completed", {
+        paymentMethod: collectPaymentSplit ? "Dividido" : collectPaymentMethod,
+        paymentSplit: collectPaymentSplit,
+        paymentCashAmount: collectPaymentSplit ? collectCashAmount : 0,
+        paymentTransferAmount: collectPaymentSplit ? collectTransferAmount : 0,
+        paymentPending: false,
+      });
+      await insertCashEntry({
+        type: "income",
+        amount: collectingRental.total,
+        description: `Cobro pendiente - ${collectingRental.client_name} (${collectingRental.zone}) ${collectingRental.service_type}${collectPaymentSplit ? " [Dividido]" : ` [${collectPaymentMethod}]`}`,
+        category: collectingRental.service_type === "Solo Gas" ? "gas" : "alquiler",
+        created_by: user!.id,
+      });
+      setCollectingRental(null);
+      toast({ title: "Pago cobrado ✓" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
