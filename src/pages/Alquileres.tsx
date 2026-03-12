@@ -679,6 +679,72 @@ export default function Alquileres() {
           })()}
         </CardContent>
       </Card>
+      {/* Collect pending payment dialog */}
+      <Dialog open={!!collectingRental} onOpenChange={(open) => { if (!open) setCollectingRental(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cobrar Pago Pendiente</DialogTitle></DialogHeader>
+          {collectingRental && (
+            <div className="space-y-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">{collectingRental.client_name}</span></p>
+                <p>{collectingRental.zone} • {collectingRental.service_type}</p>
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t border-border pt-3">
+                <span>Total a cobrar</span>
+                <span className="text-primary">{formatCOP(collectingRental.total)}</span>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="collectSplit"
+                    checked={collectPaymentSplit}
+                    onCheckedChange={(v) => {
+                      setCollectPaymentSplit(!!v);
+                      if (v) setCollectPaymentMethod("");
+                    }}
+                  />
+                  <label htmlFor="collectSplit" className="text-sm text-muted-foreground cursor-pointer">Pago dividido</label>
+                </div>
+                {collectPaymentSplit ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Efectivo</Label>
+                      <Input type="number" min={0} value={collectCashAmount} onChange={(e) => setCollectCashAmount(Number(e.target.value))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Transferencia</Label>
+                      <Input type="number" min={0} value={collectTransferAmount} onChange={(e) => setCollectTransferAmount(Number(e.target.value))} />
+                    </div>
+                    {(collectCashAmount + collectTransferAmount) !== collectingRental.total && (
+                      <p className="col-span-2 text-xs text-destructive">
+                        Suma: {formatCOP(collectCashAmount + collectTransferAmount)} — debe ser {formatCOP(collectingRental.total)}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <Select value={collectPaymentMethod} onValueChange={setCollectPaymentMethod}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map((pm) => (
+                        <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={collectPayment}>
+                  <Check className="h-4 w-4 mr-1" /> Cobrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
