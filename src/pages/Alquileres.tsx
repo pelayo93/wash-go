@@ -153,44 +153,19 @@ export default function Alquileres() {
         toast({ title: "Ingresa el precio del gas", variant: "destructive" });
         return;
       }
-      if (!soloGasPaymentPending && !soloGasPaymentMethod) {
-        toast({ title: "Selecciona el método de pago", variant: "destructive" });
-        return;
-      }
       try {
+        // Register as active so it can be completed later with additional services
         await insertRental({
           client_name: clientName, phone, address,
           zone: selectedZone, service_type: "Solo Gas",
           price: soloGasPrice, extra_hours: 0,
           floor_surcharge: 0, total: soloGasPrice,
           floor_number: floorNumber, delivered_by: deliveredBy,
-          picked_up_by: deliveredBy, entry_time: entryTime,
-          exit_time: entryTime, created_by: user!.id,
+          picked_up_by: "", entry_time: entryTime,
+          exit_time: "", created_by: user!.id,
         });
-        // Update status to completed
-        const { data: lastRental } = await supabase
-          .from("rentals")
-          .select("id")
-          .eq("client_name", clientName)
-          .eq("service_type", "Solo Gas")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        if (lastRental) {
-          await updateRentalStatus(lastRental.id, "completed", {
-            paymentMethod: soloGasPaymentPending ? "Pago pendiente" : soloGasPaymentMethod,
-            paymentPending: soloGasPaymentPending,
-          });
-        }
-        if (!soloGasPaymentPending) {
-          await insertCashEntry({
-            type: "income", amount: soloGasPrice,
-            description: `Solo Gas - ${clientName} (${selectedZone})${soloGasNote ? ` (${soloGasNote})` : ""} [${soloGasPaymentMethod}]`,
-            category: "gas", created_by: user!.id,
-          });
-        }
         resetForm();
-        toast({ title: soloGasPaymentPending ? "Venta de gas registrada (pago pendiente) ✓" : "Venta de gas registrada ✓" });
+        toast({ title: "Pedido de gas registrado ✓ — Usa 'Completar' para finalizar o agregar servicios" });
       } catch (err: any) {
         toast({ title: err.message || "Error al registrar", variant: "destructive" });
       }
