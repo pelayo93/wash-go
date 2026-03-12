@@ -67,6 +67,13 @@ export default function Alquileres() {
   const [soloGasPaymentMethod, setSoloGasPaymentMethod] = useState("");
   const [soloGasPaymentPending, setSoloGasPaymentPending] = useState(false);
 
+  // Collect pending payment state
+  const [collectingRental, setCollectingRental] = useState<any | null>(null);
+  const [collectPaymentMethod, setCollectPaymentMethod] = useState("");
+  const [collectPaymentSplit, setCollectPaymentSplit] = useState(false);
+  const [collectCashAmount, setCollectCashAmount] = useState(0);
+  const [collectTransferAmount, setCollectTransferAmount] = useState(0);
+
   // Complete dialog pricing
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
