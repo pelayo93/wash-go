@@ -358,17 +358,24 @@ export default function Alquileres() {
       {/* Complete rental dialog */}
       <Dialog open={!!completingRental} onOpenChange={(open) => { if (!open) closeCompleteDialog(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Completar Alquiler</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>
+                {completingRental?.service_type === "Solo Gas" ? "Completar Pedido (Gas)" : "Completar Alquiler"}
+              </DialogTitle>
+            </DialogHeader>
           <div className="space-y-4 py-2">
             {completingRental && (
               <p className="text-sm text-muted-foreground">
                 Cliente: <span className="font-medium text-foreground">{completingRental.client_name}</span> • {completingRental.zone}
+                {completingRental.service_type === "Solo Gas" && (
+                  <span className="ml-2"><Badge variant="outline" className="text-xs">Gas registrado: {formatCOP(completingRental.price)}</Badge></span>
+                )}
               </p>
             )}
             <div className="space-y-2">
-              <Label>Tipo de Servicio</Label>
+              <Label>Tipo de Servicio {completeGasRequested ? "(opcional si solo es gas)" : ""}</Label>
               <Select value={completeServiceType} onValueChange={setCompleteServiceType}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={completeGasRequested ? "Sin servicio adicional" : "Seleccionar servicio"} /></SelectTrigger>
                 <SelectContent>
                   {completeServiceTypes.map((st) => (
                     <SelectItem key={st} value={st}>{st} - {formatCOP(completeZoneObj!.prices[st])}</SelectItem>
