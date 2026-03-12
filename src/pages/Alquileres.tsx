@@ -666,6 +666,11 @@ export default function Alquileres() {
                         <Check className="h-3.5 w-3.5 mr-1" /> Completar
                       </Button>
                     )}
+                    {r.payment_pending && (
+                      <Button size="sm" variant="default" onClick={() => openCollectDialog(r)}>
+                        <CreditCard className="h-3.5 w-3.5 mr-1" /> Cobrar
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
