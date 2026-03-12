@@ -120,9 +120,11 @@ export default function Alquileres() {
     setCompleteCashAmount(0);
     setCompleteTransferAmount(0);
     setCompletePaymentPending(false);
-    setCompleteGasRequested(false);
+    // Pre-fill gas if this is a Solo Gas rental
+    const isSoloGas = rental.service_type === "Solo Gas";
+    setCompleteGasRequested(isSoloGas);
     setCompleteGasNote("");
-    setCompleteGasPrice(0);
+    setCompleteGasPrice(isSoloGas ? rental.price : 0);
   };
 
   const closeCompleteDialog = () => {
