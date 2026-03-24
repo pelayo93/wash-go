@@ -363,7 +363,7 @@ export default function Alquileres() {
                   }}
                 />
                 <label htmlFor="soloGas" className="text-sm font-medium cursor-pointer flex items-center gap-1">
-                  <Flame className="h-3.5 w-3.5 text-orange-500" /> Solo Gas (sin alquiler)
+                  <Flame className="h-3.5 w-3.5 text-orange-500" /> Solo Gas
                 </label>
               </div>
               {soloGas && (
