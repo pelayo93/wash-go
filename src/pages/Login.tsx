@@ -67,56 +67,96 @@ export default function Login() {
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
+          {forgotMode ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label>Nombre completo</Label>
+                <Label>Correo electrónico</Label>
                 <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Tu nombre"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
                   required
                 />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label>Correo electrónico</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@ejemplo.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Contraseña</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {isSignUp ? (
-                <><UserPlus className="h-4 w-4 mr-1" /> Crear cuenta</>
-              ) : (
-                <><LogIn className="h-4 w-4 mr-1" /> Iniciar sesión</>
-              )}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-foreground underline"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
-            </button>
-          </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                <KeyRound className="h-4 w-4 mr-1" /> Enviar enlace de recuperación
+              </Button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground hover:text-foreground underline"
+                  onClick={() => setForgotMode(false)}
+                >
+                  Volver a iniciar sesión
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <Label>Nombre completo</Label>
+                    <Input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Tu nombre"
+                      required
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>Correo electrónico</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="correo@ejemplo.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contraseña</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                {!isSignUp && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                      onClick={() => setForgotMode(true)}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {isSignUp ? (
+                    <><UserPlus className="h-4 w-4 mr-1" /> Crear cuenta</>
+                  ) : (
+                    <><LogIn className="h-4 w-4 mr-1" /> Iniciar sesión</>
+                  )}
+                </Button>
+              </form>
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground hover:text-foreground underline"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                >
+                  {isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
+                </button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
