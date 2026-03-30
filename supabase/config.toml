@@ -1,1 +1,5 @@
 project_id = "hzouqdvqxcnynslaetfr"
+
+[auth]
+site_url = "https://wash-go.vercel.app"
+additional_redirect_urls = ["https://wash-go.vercel.app/reset-password", "https://id-preview--fe4547a4-4ad9-4bba-9b45-a0b7c7317d3c.lovable.app/reset-password"]
