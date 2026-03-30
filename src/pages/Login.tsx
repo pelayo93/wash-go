@@ -63,7 +63,7 @@ export default function Login() {
           </div>
           <CardTitle className="text-xl">LavaExpress</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {isSignUp ? "Crear cuenta" : "Iniciar sesión"}
+            {forgotMode ? "Recuperar contraseña" : isSignUp ? "Crear cuenta" : "Iniciar sesión"}
           </p>
         </CardHeader>
         <CardContent>
