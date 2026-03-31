@@ -19,6 +19,9 @@ interface AuthContextType {
   loading: boolean;
   // a human-readable message when something goes wrong fetching auth info
   error: string | null;
+  // true when the user landed via a password recovery link
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signIn: (
     email: string,
     password: string,
