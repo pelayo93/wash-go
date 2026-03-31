@@ -228,6 +228,36 @@ export default function Usuarios() {
                     </Select>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar contraseña">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cambiar contraseña</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Nueva contraseña para {u.email}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-2">
+                          <Input
+                            type="password"
+                            placeholder="Mínimo 6 caracteres"
+                            value={passwordDialogUser?.id === u.id ? newPassword : ""}
+                            onFocus={() => { setPasswordDialogUser(u); setNewPassword(""); }}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => { setPasswordDialogUser(null); setNewPassword(""); }}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => { setPasswordDialogUser(u); handleChangePassword(); }} disabled={changingPassword}>
+                            {changingPassword ? "Guardando..." : "Guardar"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
