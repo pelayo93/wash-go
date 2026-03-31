@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Users, Plus, Trash2, Shield, UserCheck } from "lucide-react";
+import { Users, Plus, Trash2, Shield, UserCheck, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +59,9 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [passwordDialogUser, setPasswordDialogUser] = useState<AppUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -116,6 +119,25 @@ export default function Usuarios() {
       loadUsers();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordDialogUser || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await callManageUsers("reset_password", { userId: passwordDialogUser.id, password: newPassword });
+      toast({ title: "Contraseña actualizada" });
+      setPasswordDialogUser(null);
+      setNewPassword("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -204,6 +226,36 @@ export default function Usuarios() {
                         <SelectItem value="entrega">Entrega</SelectItem>
                       </SelectContent>
                     </Select>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar contraseña">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cambiar contraseña</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Nueva contraseña para {u.email}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-2">
+                          <Input
+                            type="password"
+                            placeholder="Mínimo 6 caracteres"
+                            value={passwordDialogUser?.id === u.id ? newPassword : ""}
+                            onFocus={() => { setPasswordDialogUser(u); setNewPassword(""); }}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => { setPasswordDialogUser(null); setNewPassword(""); }}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => { setPasswordDialogUser(u); handleChangePassword(); }} disabled={changingPassword}>
+                            {changingPassword ? "Guardando..." : "Guardar"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">

@@ -109,6 +109,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "reset_password") {
+      const { userId, password } = body;
+      if (!userId || !password) throw new Error("Faltan campos");
+      if (password.length < 6) throw new Error("La contraseña debe tener al menos 6 caracteres");
+
+      const { error } = await adminClient.auth.admin.updateUserById(userId, { password });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error("Acción no válida");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error desconocido";

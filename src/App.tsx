@@ -18,12 +18,17 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, role, loading, error } = useAuth();
+  const { user, role, loading, error, isPasswordRecovery } = useAuth();
 
-  // we keep showing the loading indicator until the auth provider has
-  // resolved both the session *and* the role. by treating `role` as
-  // `undefined` while the query is pending we avoid the flash of
-  // "Cuenta sin rol asignado" that happens today.
+  // If user landed via a password recovery link, show the reset form
+  if (isPasswordRecovery) {
+    return (
+      <Routes>
+        <Route path="*" element={<ResetPassword />} />
+      </Routes>
+    );
+  }
+
   if (loading || role === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">

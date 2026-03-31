@@ -19,6 +19,9 @@ interface AuthContextType {
   loading: boolean;
   // a human-readable message when something goes wrong fetching auth info
   error: string | null;
+  // true when the user landed via a password recovery link
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signIn: (
     email: string,
     password: string,
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const ROLE_CACHE_PREFIX = "user_role_";
 
   const cacheRole = (userId: string | undefined, value: AppRole | null) => {
@@ -155,6 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.debug("auth event", event, session);
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      }
       await handleSession(session);
     });
 
@@ -272,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, role, loading, error, signIn, signUp, signOut }}
+      value={{ user, session, role, loading, error, isPasswordRecovery, clearPasswordRecovery: () => setIsPasswordRecovery(false), signIn, signUp, signOut }}
     >
       {children}
     </AuthContext.Provider>
