@@ -15,8 +15,22 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for errors in hash (expired/invalid link)
+    const hash = window.location.hash;
+    if (hash.includes("error=")) {
+      const params = new URLSearchParams(hash.replace("#", ""));
+      const desc = params.get("error_description");
+      if (desc?.toLowerCase().includes("expired")) {
+        setLinkError("El enlace ha expirado. Solicita uno nuevo desde la pantalla de inicio de sesión.");
+      } else {
+        setLinkError(desc || "El enlace es inválido. Solicita uno nuevo.");
+      }
+      return;
+    }
+
     // Listen for the PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -24,7 +38,7 @@ export default function ResetPassword() {
       }
     });
     // Also check hash for type=recovery
-    if (window.location.hash.includes("type=recovery")) {
+    if (hash.includes("type=recovery")) {
       setReady(true);
     }
     return () => subscription.unsubscribe();
@@ -50,6 +64,21 @@ export default function ResetPassword() {
     }
     setLoading(false);
   };
+
+  if (linkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center space-y-4">
+            <p className="text-destructive font-medium">{linkError}</p>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Volver a iniciar sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (
