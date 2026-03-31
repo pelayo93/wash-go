@@ -76,6 +76,7 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
         {isAdmin ? (
           <>
             <Route path="/" element={<Dashboard />} />
