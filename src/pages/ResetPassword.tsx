@@ -65,6 +65,21 @@ export default function ResetPassword() {
     setLoading(false);
   };
 
+  if (linkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center space-y-4">
+            <p className="text-destructive font-medium">{linkError}</p>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              Volver a iniciar sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
