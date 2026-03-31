@@ -59,6 +59,9 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [passwordDialogUser, setPasswordDialogUser] = useState<AppUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const { toast } = useToast();
 
   // Form state
