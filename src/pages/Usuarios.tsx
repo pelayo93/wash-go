@@ -122,6 +122,25 @@ export default function Usuarios() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!passwordDialogUser || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await callManageUsers("reset_password", { userId: passwordDialogUser.id, password: newPassword });
+      toast({ title: "Contraseña actualizada" });
+      setPasswordDialogUser(null);
+      setNewPassword("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   if (loading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
   }
