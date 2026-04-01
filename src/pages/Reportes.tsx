@@ -223,8 +223,8 @@ export default function Reportes() {
 
   const handleExportAllPersonsPDF = () => {
     exportToPDF("Reporte por Repartidor", "reporte_repartidores",
-      ["Repartidor", "Entregas", "Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]),
+      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]),
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
   };
 
