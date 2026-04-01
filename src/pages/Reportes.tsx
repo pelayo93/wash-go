@@ -164,9 +164,9 @@ export default function Reportes() {
   }, [filteredRentals, selectedPerson]);
 
   const personSummary = useMemo(() => {
-    if (!selectedPerson) return { deliveries: 0, pickups: 0, total: 0 };
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
     const data = byPerson.find(([name]) => name === selectedPerson);
-    return data ? data[1] : { deliveries: 0, pickups: 0, total: 0 };
+    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
   }, [byPerson, selectedPerson]);
 
   const handleExportFinancialCSV = () => {
