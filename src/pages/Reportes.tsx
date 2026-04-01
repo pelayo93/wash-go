@@ -116,16 +116,18 @@ export default function Reportes() {
 
   // By delivery person
   const byPerson = useMemo(() => {
-    const map: Record<string, { deliveries: number; pickups: number; total: number }> = {};
+    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number }> = {};
     filteredRentals.forEach((r) => {
       if (r.delivered_by) {
-        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, total: 0 };
+        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
         map[r.delivered_by].deliveries++;
+        map[r.delivered_by].totalDeliveries += r.total;
         map[r.delivered_by].total += r.total;
       }
       if (r.picked_up_by) {
-        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, total: 0 };
+        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
         map[r.picked_up_by].pickups++;
+        map[r.picked_up_by].totalPickups += r.total;
       }
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
