@@ -116,16 +116,18 @@ export default function Reportes() {
 
   // By delivery person
   const byPerson = useMemo(() => {
-    const map: Record<string, { deliveries: number; pickups: number; total: number }> = {};
+    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number }> = {};
     filteredRentals.forEach((r) => {
       if (r.delivered_by) {
-        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, total: 0 };
+        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
         map[r.delivered_by].deliveries++;
+        map[r.delivered_by].totalDeliveries += r.total;
         map[r.delivered_by].total += r.total;
       }
       if (r.picked_up_by) {
-        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, total: 0 };
+        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
         map[r.picked_up_by].pickups++;
+        map[r.picked_up_by].totalPickups += r.total;
       }
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
@@ -162,9 +164,9 @@ export default function Reportes() {
   }, [filteredRentals, selectedPerson]);
 
   const personSummary = useMemo(() => {
-    if (!selectedPerson) return { deliveries: 0, pickups: 0, total: 0 };
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
     const data = byPerson.find(([name]) => name === selectedPerson);
-    return data ? data[1] : { deliveries: 0, pickups: 0, total: 0 };
+    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
   }, [byPerson, selectedPerson]);
 
   const handleExportFinancialCSV = () => {
@@ -215,14 +217,14 @@ export default function Reportes() {
   const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
 
   const handleExportAllPersonsCSV = () => {
-    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]));
+    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]));
   };
 
   const handleExportAllPersonsPDF = () => {
     exportToPDF("Reporte por Repartidor", "reporte_repartidores",
-      ["Repartidor", "Entregas", "Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), d.pickups.toString(), formatCOP(d.total)]),
+      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]),
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
   };
 
@@ -494,7 +496,7 @@ export default function Reportes() {
                             <div>
                               <p className="font-medium text-sm">{name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {data.deliveries} entregas • {data.pickups} retiros
+                                {data.deliveries} entregas ({formatCOP(data.totalDeliveries)}) • {data.pickups} retiros ({formatCOP(data.totalPickups)})
                               </p>
                             </div>
                           </div>
@@ -545,19 +547,21 @@ export default function Reportes() {
               {/* Summary */}
               <div className="rounded-lg bg-secondary p-4 space-y-2">
                 <p className="font-semibold text-base">{selectedPerson}</p>
-                <div className="grid grid-cols-3 gap-3 text-center">
+               <div className="grid grid-cols-2 gap-3 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">Entregas</p>
                     <p className="text-lg font-bold">{personSummary.deliveries}</p>
+                    <p className="text-xs text-muted-foreground">{formatCOP(personSummary.totalDeliveries)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Retiros</p>
                     <p className="text-lg font-bold">{personSummary.pickups}</p>
+                    <p className="text-xs text-muted-foreground">{formatCOP(personSummary.totalPickups)}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
-                  </div>
+                </div>
+                <div className="text-center pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground">Total Generado (entregas)</p>
+                  <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
                 </div>
               </div>
 
