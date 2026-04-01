@@ -547,19 +547,21 @@ export default function Reportes() {
               {/* Summary */}
               <div className="rounded-lg bg-secondary p-4 space-y-2">
                 <p className="font-semibold text-base">{selectedPerson}</p>
-                <div className="grid grid-cols-3 gap-3 text-center">
+               <div className="grid grid-cols-2 gap-3 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">Entregas</p>
                     <p className="text-lg font-bold">{personSummary.deliveries}</p>
+                    <p className="text-xs text-muted-foreground">{formatCOP(personSummary.totalDeliveries)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Retiros</p>
                     <p className="text-lg font-bold">{personSummary.pickups}</p>
+                    <p className="text-xs text-muted-foreground">{formatCOP(personSummary.totalPickups)}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
-                  </div>
+                </div>
+                <div className="text-center pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground">Total Generado (entregas)</p>
+                  <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
                 </div>
               </div>
 
