@@ -496,7 +496,7 @@ export default function Reportes() {
                             <div>
                               <p className="font-medium text-sm">{name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {data.deliveries} entregas • {data.pickups} retiros
+                                {data.deliveries} entregas ({formatCOP(data.totalDeliveries)}) • {data.pickups} retiros ({formatCOP(data.totalPickups)})
                               </p>
                             </div>
                           </div>
