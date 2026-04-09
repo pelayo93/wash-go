@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          active: boolean
+          address: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          phone?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       daily_closes: {
         Row: {
           balance: number

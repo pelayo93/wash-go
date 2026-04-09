@@ -290,6 +290,24 @@ export async function deletePaymentMethod(id: string) {
   if (error) throw error;
 }
 
+// ── Clients ──
+
+export async function fetchClients() {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function insertClient(client: { name: string; phone: string; address: string; created_by: string }) {
+  const { data, error } = await supabase.from("clients").insert(client).select().single();
+  if (error) throw error;
+  return data;
+}
+
 export async function updateRentalPaymentPending(id: string, pending: boolean) {
   const { error } = await supabase.from("rentals").update({ payment_pending: pending }).eq("id", id);
   if (error) throw error;

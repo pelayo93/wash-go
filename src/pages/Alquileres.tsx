@@ -22,7 +22,7 @@ import {
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental, fetchClients, insertClient } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ export default function Alquileres() {
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
   const { surcharges } = useSurcharges();
 
@@ -46,7 +47,7 @@ export default function Alquileres() {
   const [completeZone, setCompleteZone] = useState("");
   const [completeServiceType, setCompleteServiceType] = useState("");
   const [completeExtraHours, setCompleteExtraHours] = useState(0);
-  const [completeFloor, setCompleteFloor] = useState("1-2");
+  const [completeFloorSurchargeCustom, setCompleteFloorSurchargeCustom] = useState(0);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [completePaymentMethod, setCompletePaymentMethod] = useState("");
   const [completePaymentSplit, setCompletePaymentSplit] = useState(false);
@@ -65,6 +66,10 @@ export default function Alquileres() {
   const [floorNumber, setFloorNumber] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
+  const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
   // Solo Gas form state
   const [soloGas, setSoloGas] = useState(false);
   const [soloGasNote, setSoloGasNote] = useState("");
@@ -83,14 +88,15 @@ export default function Alquileres() {
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
-  const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
+  const completeFloorSurcharge = completeFloorSurchargeCustom;
   const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge + (completeGasRequested ? completeGasPrice : 0);
 
   const loadDeliveryPeople = useCallback(async () => {
     try {
-      const [dp, pm] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods()]);
+      const [dp, pm, cl] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods(), fetchClients()]);
       setDeliveryPeople(dp);
       setPaymentMethods(pm);
+      setClients(cl);
     } catch (err) { console.error(err); }
   }, []);
 
@@ -116,6 +122,7 @@ export default function Alquileres() {
     setDeliveredBy(""); setEntryTime("");
     setSoloGas(false); setSoloGasNote(""); setSoloGasPrice(0);
     setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false);
+    setSelectedClientId(null); setClientSearch("");
     setShowForm(false);
   };
 
@@ -124,7 +131,7 @@ export default function Alquileres() {
     setCompleteZone(rental.zone || "");
     setCompleteServiceType("");
     setCompleteExtraHours(0);
-    setCompleteFloor("1-2");
+    setCompleteFloorSurchargeCustom(0);
     setCompletePickedUpBy("");
     setCompleteExitTime("");
     setCompletePaymentMethod("");
@@ -146,7 +153,7 @@ export default function Alquileres() {
     setCompleteZone("");
     setCompleteServiceType("");
     setCompleteExtraHours(0);
-    setCompleteFloor("1-2");
+    setCompleteFloorSurchargeCustom(0);
     setCompletePaymentMethod("");
     setCompletePaymentSplit(false);
     setCompleteCashAmount(0);
@@ -161,6 +168,13 @@ export default function Alquileres() {
     if (!clientName || !selectedZone) {
       toast({ title: "Completa el nombre del cliente y la zona", variant: "destructive" });
       return;
+    }
+    // Save new client if not selected from list
+    if (!selectedClientId && clientName.trim()) {
+      try {
+        const newClient = await insertClient({ name: clientName.trim(), phone, address, created_by: user!.id });
+        setClients(prev => [...prev, newClient].sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) { console.error("Error saving client:", err); }
     }
     if (soloGas) {
       if (soloGasPrice <= 0) {
@@ -231,7 +245,7 @@ export default function Alquileres() {
         extraHours: completeExtraHours,
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
-        floor: completeFloor,
+        floor: completeFloorSurcharge > 0 ? `+${completeFloorSurcharge}` : "1-2",
         paymentMethod: isPending ? "Pago pendiente" : completePaymentSplit ? "Dividido" : completePaymentMethod,
         paymentSplit: completePaymentSplit,
         paymentCashAmount: completePaymentSplit ? completeCashAmount : 0,
@@ -314,16 +328,54 @@ export default function Alquileres() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Cliente</Label>
-                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nombre del cliente" />
+                <div className="relative">
+                  <Input
+                    value={clientName}
+                    onChange={(e) => {
+                      setClientName(e.target.value);
+                      setClientSearch(e.target.value);
+                      setSelectedClientId(null);
+                      setShowClientSuggestions(true);
+                    }}
+                    onFocus={() => setShowClientSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowClientSuggestions(false), 200)}
+                    placeholder="Buscar o crear cliente..."
+                  />
+                  {showClientSuggestions && clientSearch.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
+                      {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent truncate"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setClientName(c.name);
+                            setPhone(c.phone || "");
+                            setAddress(c.address || "");
+                            setSelectedClientId(c.id);
+                            setShowClientSuggestions(false);
+                          }}
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {c.phone && <span className="text-muted-foreground ml-2">• {c.phone}</span>}
+                        </button>
+                      ))}
+                      {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">Nuevo cliente — se guardará al registrar</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono(Opcional)</Label>
+                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono (Opcional)</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="300 123 4567" />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección(Opcional)</Label>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección (Opcional)</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa" />
               </div>
               <div className="space-y-2">
@@ -440,15 +492,9 @@ export default function Alquileres() {
               <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
             </div>
             <div className="space-y-2">
-              <Label>Piso</Label>
-              <Select value={completeFloor} onValueChange={setCompleteFloor}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
-                  <SelectItem value="3-4">3° - 4° (+{formatCOP(surcharges.piso34)})</SelectItem>
-                  <SelectItem value="5-6">5° - 6° (+{formatCOP(surcharges.piso56)})</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Recargo por Piso</Label>
+              <Input type="number" min={0} value={completeFloorSurchargeCustom} onChange={(e) => setCompleteFloorSurchargeCustom(Number(e.target.value))} placeholder="0" />
+              <p className="text-xs text-muted-foreground">Ingresa el monto del recargo (0 si no aplica)</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
