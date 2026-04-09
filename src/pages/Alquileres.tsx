@@ -22,7 +22,7 @@ import {
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental, fetchClients, insertClient } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
