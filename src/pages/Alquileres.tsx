@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame,
+  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame, Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -153,8 +158,8 @@ export default function Alquileres() {
   };
 
   const handleSubmit = async () => {
-    if (!clientName || !phone || !address || !selectedZone) {
-      toast({ title: "Completa todos los campos", variant: "destructive" });
+    if (!clientName || !selectedZone) {
+      toast({ title: "Completa el nombre del cliente y la zona", variant: "destructive" });
       return;
     }
     if (soloGas) {
@@ -670,6 +675,34 @@ export default function Alquileres() {
                       <Button size="sm" variant="default" onClick={() => openCollectDialog(r)}>
                         <CreditCard className="h-3.5 w-3.5 mr-1" /> Cobrar
                       </Button>
+                    )}
+                    {role === "admin" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar alquiler?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará permanentemente el alquiler de "{r.client_name}". Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={async () => {
+                              try {
+                                await deleteRental(r.id);
+                                toast({ title: "Alquiler eliminado ✓" });
+                              } catch (err: any) {
+                                toast({ title: err.message || "Error al eliminar", variant: "destructive" });
+                              }
+                            }}>Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>

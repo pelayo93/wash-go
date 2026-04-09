@@ -72,6 +72,11 @@ export async function updateRentalStatus(
   if (error) throw error;
 }
 
+export async function deleteRental(id: string) {
+  const { error } = await supabase.from("rentals").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ── Cash Entries ──
 
 export async function fetchCashEntries() {
