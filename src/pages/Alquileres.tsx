@@ -319,11 +319,11 @@ export default function Alquileres() {
                 <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nombre del cliente" />
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono</Label>
+                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono(Opcional)</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="300 123 4567" />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección</Label>
+                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección(Opcional)</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa" />
               </div>
               <div className="space-y-2">
