@@ -47,7 +47,7 @@ export default function Alquileres() {
   const [completeZone, setCompleteZone] = useState("");
   const [completeServiceType, setCompleteServiceType] = useState("");
   const [completeExtraHours, setCompleteExtraHours] = useState(0);
-  const [completeFloor, setCompleteFloor] = useState("1-2");
+  const [completeFloorSurchargeCustom, setCompleteFloorSurchargeCustom] = useState(0);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [completePaymentMethod, setCompletePaymentMethod] = useState("");
   const [completePaymentSplit, setCompletePaymentSplit] = useState(false);
@@ -84,14 +84,15 @@ export default function Alquileres() {
   const completeZoneObj = ZONES.find((z) => z.name === completeZone);
   const completeServiceTypes = completeZoneObj ? Object.keys(completeZoneObj.prices) : [];
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
-  const completeFloorSurcharge = completeFloor === "3-4" ? surcharges.piso34 : completeFloor === "5-6" ? surcharges.piso56 : 0;
+  const completeFloorSurcharge = completeFloorSurchargeCustom;
   const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge + (completeGasRequested ? completeGasPrice : 0);
 
   const loadDeliveryPeople = useCallback(async () => {
     try {
-      const [dp, pm] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods()]);
+      const [dp, pm, cl] = await Promise.all([fetchDeliveryPeople(), fetchPaymentMethods(), fetchClients()]);
       setDeliveryPeople(dp);
       setPaymentMethods(pm);
+      setClients(cl);
     } catch (err) { console.error(err); }
   }, []);
 
@@ -125,7 +126,7 @@ export default function Alquileres() {
     setCompleteZone(rental.zone || "");
     setCompleteServiceType("");
     setCompleteExtraHours(0);
-    setCompleteFloor("1-2");
+    setCompleteFloorSurchargeCustom(0);
     setCompletePickedUpBy("");
     setCompleteExitTime("");
     setCompletePaymentMethod("");
@@ -147,7 +148,7 @@ export default function Alquileres() {
     setCompleteZone("");
     setCompleteServiceType("");
     setCompleteExtraHours(0);
-    setCompleteFloor("1-2");
+    setCompleteFloorSurchargeCustom(0);
     setCompletePaymentMethod("");
     setCompletePaymentSplit(false);
     setCompleteCashAmount(0);
