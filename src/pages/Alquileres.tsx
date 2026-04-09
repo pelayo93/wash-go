@@ -442,15 +442,9 @@ export default function Alquileres() {
               <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
             </div>
             <div className="space-y-2">
-              <Label>Piso</Label>
-              <Select value={completeFloor} onValueChange={setCompleteFloor}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-2">1° - 2° (sin recargo)</SelectItem>
-                  <SelectItem value="3-4">3° - 4° (+{formatCOP(surcharges.piso34)})</SelectItem>
-                  <SelectItem value="5-6">5° - 6° (+{formatCOP(surcharges.piso56)})</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Recargo por Piso</Label>
+              <Input type="number" min={0} value={completeFloorSurchargeCustom} onChange={(e) => setCompleteFloorSurchargeCustom(Number(e.target.value))} placeholder="0" />
+              <p className="text-xs text-muted-foreground">Ingresa el monto del recargo (0 si no aplica)</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
