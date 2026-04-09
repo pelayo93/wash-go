@@ -321,16 +321,54 @@ export default function Alquileres() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Cliente</Label>
-                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nombre del cliente" />
+                <div className="relative">
+                  <Input
+                    value={clientName}
+                    onChange={(e) => {
+                      setClientName(e.target.value);
+                      setClientSearch(e.target.value);
+                      setSelectedClientId(null);
+                      setShowClientSuggestions(true);
+                    }}
+                    onFocus={() => setShowClientSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowClientSuggestions(false), 200)}
+                    placeholder="Buscar o crear cliente..."
+                  />
+                  {showClientSuggestions && clientSearch.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
+                      {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent truncate"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setClientName(c.name);
+                            setPhone(c.phone || "");
+                            setAddress(c.address || "");
+                            setSelectedClientId(c.id);
+                            setShowClientSuggestions(false);
+                          }}
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {c.phone && <span className="text-muted-foreground ml-2">• {c.phone}</span>}
+                        </button>
+                      ))}
+                      {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">Nuevo cliente — se guardará al registrar</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono(Opcional)</Label>
+                <Label className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> Teléfono (Opcional)</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="300 123 4567" />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección(Opcional)</Label>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Dirección (Opcional)</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa" />
               </div>
               <div className="space-y-2">
