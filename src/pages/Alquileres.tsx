@@ -169,6 +169,13 @@ export default function Alquileres() {
       toast({ title: "Completa el nombre del cliente y la zona", variant: "destructive" });
       return;
     }
+    // Save new client if not selected from list
+    if (!selectedClientId && clientName.trim()) {
+      try {
+        const newClient = await insertClient({ name: clientName.trim(), phone, address, created_by: user!.id });
+        setClients(prev => [...prev, newClient].sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) { console.error("Error saving client:", err); }
+    }
     if (soloGas) {
       if (soloGasPrice <= 0) {
         toast({ title: "Ingresa el precio del gas", variant: "destructive" });
