@@ -233,7 +233,7 @@ export default function Alquileres() {
         extraHours: completeExtraHours,
         floorSurcharge: completeFloorSurcharge,
         total: completeTotal,
-        floor: completeFloor,
+        floor: completeFloorSurcharge > 0 ? `+${completeFloorSurcharge}` : "1-2",
         paymentMethod: isPending ? "Pago pendiente" : completePaymentSplit ? "Dividido" : completePaymentMethod,
         paymentSplit: completePaymentSplit,
         paymentCashAmount: completePaymentSplit ? completeCashAmount : 0,
