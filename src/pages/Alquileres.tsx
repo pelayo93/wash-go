@@ -66,6 +66,10 @@ export default function Alquileres() {
   const [floorNumber, setFloorNumber] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
+  const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
   // Solo Gas form state
   const [soloGas, setSoloGas] = useState(false);
   const [soloGasNote, setSoloGasNote] = useState("");
