@@ -122,6 +122,7 @@ export default function Alquileres() {
     setDeliveredBy(""); setEntryTime("");
     setSoloGas(false); setSoloGasNote(""); setSoloGasPrice(0);
     setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false);
+    setSelectedClientId(null); setClientSearch("");
     setShowForm(false);
   };
 
