@@ -36,6 +36,7 @@ export default function Alquileres() {
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
   const { surcharges } = useSurcharges();
 
