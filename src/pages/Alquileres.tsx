@@ -676,6 +676,34 @@ export default function Alquileres() {
                         <CreditCard className="h-3.5 w-3.5 mr-1" /> Cobrar
                       </Button>
                     )}
+                    {role === "admin" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar alquiler?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará permanentemente el alquiler de "{r.client_name}". Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={async () => {
+                              try {
+                                await deleteRental(r.id);
+                                toast({ title: "Alquiler eliminado ✓" });
+                              } catch (err: any) {
+                                toast({ title: err.message || "Error al eliminar", variant: "destructive" });
+                              }
+                            }}>Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               ))}
