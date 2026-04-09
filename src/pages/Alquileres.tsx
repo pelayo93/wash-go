@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { formatCOP } from "@/lib/data";
 import { useZones } from "@/hooks/useZones";
 import { useSurcharges } from "@/hooks/useSurcharges";
-import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods } from "@/lib/supabase-data";
+import { fetchRentals, insertRental, updateRentalStatus, updateRentalPaymentPending, insertCashEntry, fetchDeliveryPeople, fetchPaymentMethods, deleteRental } from "@/lib/supabase-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -153,8 +153,8 @@ export default function Alquileres() {
   };
 
   const handleSubmit = async () => {
-    if (!clientName || !phone || !address || !selectedZone) {
-      toast({ title: "Completa todos los campos", variant: "destructive" });
+    if (!clientName || !selectedZone) {
+      toast({ title: "Completa el nombre del cliente y la zona", variant: "destructive" });
       return;
     }
     if (soloGas) {
