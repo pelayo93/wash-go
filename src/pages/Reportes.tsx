@@ -238,9 +238,10 @@ export default function Reportes() {
 
   const handleExportPersonCSV = () => {
     if (!selectedPerson) return;
-    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Método Pago", "Fecha", "Rol"],
       personRentals.map((r) => [
         r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        r.payment_split ? `Efectivo: ${formatCOP(r.payment_cash_amount || 0)} / Transfer: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
         new Date(r.created_at).toLocaleDateString("es-CO"),
         r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
       ]));
@@ -249,9 +250,10 @@ export default function Reportes() {
   const handleExportPersonPDF = () => {
     if (!selectedPerson) return;
     exportToPDF(`Cierre Repartidor: ${selectedPerson}`, `cierre_${selectedPerson}`,
-      ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      ["Cliente", "Zona", "Servicio", "Total", "Pago", "Fecha", "Rol"],
       personRentals.map((r) => [
         r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        r.payment_split ? `Ef: ${formatCOP(r.payment_cash_amount || 0)} / Tr: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
         new Date(r.created_at).toLocaleDateString("es-CO"),
         r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
       ]),
@@ -259,6 +261,8 @@ export default function Reportes() {
         { label: "Repartidor", value: selectedPerson },
         { label: "Entregas", value: personSummary.deliveries.toString() },
         { label: "Retiros", value: personSummary.pickups.toString() },
+        { label: "Efectivo", value: formatCOP(personSummary.cashTotal) },
+        { label: "Transferencia", value: formatCOP(personSummary.transferTotal) },
         { label: "Total", value: formatCOP(personSummary.total) },
       ]);
   };
