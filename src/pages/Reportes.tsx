@@ -571,6 +571,16 @@ export default function Reportes() {
                   <p className="text-xs text-muted-foreground">Total Generado (entregas)</p>
                   <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
                 </div>
+                <div className="grid grid-cols-2 gap-3 text-center pt-2 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground">💵 Efectivo</p>
+                    <p className="text-sm font-bold text-success">{formatCOP(personSummary.cashTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">📲 Transferencia</p>
+                    <p className="text-sm font-bold text-blue-500">{formatCOP(personSummary.transferTotal)}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Detail list */}
