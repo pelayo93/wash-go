@@ -116,16 +116,20 @@ export default function Reportes() {
 
   // By delivery person
   const byPerson = useMemo(() => {
-    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number }> = {};
+    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number; cashTotal: number; transferTotal: number }> = {};
     filteredRentals.forEach((r) => {
+      const cash = r.payment_split ? (r.payment_cash_amount || 0) : (r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
+      const transfer = r.payment_split ? (r.payment_transfer_amount || 0) : (!r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
       if (r.delivered_by) {
-        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.delivered_by].deliveries++;
         map[r.delivered_by].totalDeliveries += r.total;
         map[r.delivered_by].total += r.total;
+        map[r.delivered_by].cashTotal += cash;
+        map[r.delivered_by].transferTotal += transfer;
       }
       if (r.picked_up_by) {
-        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.picked_up_by].pickups++;
         map[r.picked_up_by].totalPickups += r.total;
       }
