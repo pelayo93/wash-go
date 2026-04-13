@@ -506,6 +506,9 @@ export default function Reportes() {
                               <p className="text-xs text-muted-foreground">
                                 {data.deliveries} entregas ({formatCOP(data.totalDeliveries)}) • {data.pickups} retiros ({formatCOP(data.totalPickups)})
                               </p>
+                              <p className="text-xs text-muted-foreground">
+                                💵 {formatCOP(data.cashTotal)} • 📲 {formatCOP(data.transferTotal)}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
