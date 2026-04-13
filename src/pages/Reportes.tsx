@@ -225,14 +225,14 @@ export default function Reportes() {
   const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
 
   const handleExportAllPersonsCSV = () => {
-    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]));
+    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Efectivo", "Transferencia", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.cashTotal), formatCOP(d.transferTotal), formatCOP(d.total)]));
   };
 
   const handleExportAllPersonsPDF = () => {
     exportToPDF("Reporte por Repartidor", "reporte_repartidores",
-      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]),
+      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Efectivo", "Transferencia", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.cashTotal), formatCOP(d.transferTotal), formatCOP(d.total)]),
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
   };
 
