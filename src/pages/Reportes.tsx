@@ -139,7 +139,7 @@ export default function Reportes() {
 
   // Services breakdown per person: { personName: [{ zone, serviceType, total, clientName, date }] }
   const personServices = useMemo(() => {
-    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string; role: string }[]> = {};
+    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string; role: string; payment_method: string; payment_split: boolean; payment_cash: number; payment_transfer: number }[]> = {};
     filteredRentals.forEach((r) => {
       const base = {
         zone: r.zone,
@@ -147,6 +147,10 @@ export default function Reportes() {
         total: r.total,
         client_name: r.client_name,
         date: new Date(r.created_at).toLocaleDateString("es-CO"),
+        payment_method: r.payment_method || "-",
+        payment_split: r.payment_split || false,
+        payment_cash: r.payment_cash_amount || 0,
+        payment_transfer: r.payment_transfer_amount || 0,
       };
       if (r.delivered_by) {
         if (!map[r.delivered_by]) map[r.delivered_by] = [];
@@ -168,9 +172,9 @@ export default function Reportes() {
   }, [filteredRentals, selectedPerson]);
 
   const personSummary = useMemo(() => {
-    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
     const data = byPerson.find(([name]) => name === selectedPerson);
-    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
   }, [byPerson, selectedPerson]);
 
   const handleExportFinancialCSV = () => {
