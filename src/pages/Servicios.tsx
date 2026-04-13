@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard } from "lucide-react";
+import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +19,25 @@ import {
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
   fetchAppSettings, updateAppSetting,
   fetchPaymentMethods, insertPaymentMethod, deletePaymentMethod,
+  fetchClients, insertClient, updateClient, deleteClient,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Servicios() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [zones, setZones] = useState<any[]>([]);
+  const [prices, setPrices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [clientsList, setClientsList] = useState<any[]>([]);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [editClientName, setEditClientName] = useState("");
+  const [editClientPhone, setEditClientPhone] = useState("");
+  const [editClientAddress, setEditClientAddress] = useState("");
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
