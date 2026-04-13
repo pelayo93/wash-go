@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard } from "lucide-react";
+import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,14 +19,25 @@ import {
   fetchZonePrices, upsertZonePrice, deleteZonePrice,
   fetchAppSettings, updateAppSetting,
   fetchPaymentMethods, insertPaymentMethod, deletePaymentMethod,
+  fetchClients, insertClient, updateClient, deleteClient,
 } from "@/lib/supabase-data";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Servicios() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [zones, setZones] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clientsList, setClientsList] = useState<any[]>([]);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [editClientName, setEditClientName] = useState("");
+  const [editClientPhone, setEditClientPhone] = useState("");
+  const [editClientAddress, setEditClientAddress] = useState("");
 
   // Surcharges
   const [extraHora, setExtraHora] = useState(3000);
@@ -55,13 +66,14 @@ export default function Servicios() {
 
   const load = useCallback(async () => {
     try {
-      const [z, p, settings, pm] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings(), fetchPaymentMethods()]);
+      const [z, p, settings, pm, cl] = await Promise.all([fetchZones(), fetchZonePrices(), fetchAppSettings(), fetchPaymentMethods(), fetchClients()]);
       setZones(z);
       setPrices(p);
       setExtraHora(settings.extra_hora ?? 3000);
       setPiso34(settings.piso_3_4 ?? 1000);
       setPiso56(settings.piso_5_6 ?? 2000);
       setPmList(pm);
+      setClientsList(cl);
     } catch (err) {
       console.error(err);
     } finally {
@@ -232,7 +244,86 @@ export default function Servicios() {
         </CardContent>
       </Card>
 
-      {/* Add new zone */}
+      {/* Clients */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" /> Clientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Nombre *" className="flex-1" />
+            <Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="Teléfono" className="flex-1" />
+            <Input value={newClientAddress} onChange={(e) => setNewClientAddress(e.target.value)} placeholder="Dirección" className="flex-1" />
+            <Button size="sm" onClick={async () => {
+              if (!newClientName.trim()) return;
+              try {
+                await insertClient({ name: newClientName.trim(), phone: newClientPhone.trim(), address: newClientAddress.trim(), created_by: user?.id || "" });
+                setNewClientName(""); setNewClientPhone(""); setNewClientAddress("");
+                await load();
+                toast({ title: "Cliente agregado ✓" });
+              } catch (err: any) {
+                toast({ title: err.message || "Error", variant: "destructive" });
+              }
+            }}>
+              <Plus className="h-4 w-4 mr-1" /> Agregar
+            </Button>
+          </div>
+          {clientsList.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Sin clientes registrados</p>
+          ) : (
+            <div className="space-y-1">
+              {clientsList.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.phone || "Sin teléfono"} • {c.address || "Sin dirección"}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                      setEditingClient(c);
+                      setEditClientName(c.name);
+                      setEditClientPhone(c.phone || "");
+                      setEditClientAddress(c.address || "");
+                    }}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+                          <AlertDialogDescription>Se desactivará el cliente "{c.name}".</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={async () => {
+                            try {
+                              await deleteClient(c.id);
+                              await load();
+                              toast({ title: "Cliente eliminado ✓" });
+                            } catch (err: any) {
+                              toast({ title: err.message || "Error", variant: "destructive" });
+                            }
+                          }}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Agregar Nueva Zona</CardTitle>
@@ -414,6 +505,43 @@ export default function Servicios() {
                   setEditingSurcharges(false);
                   await load();
                   toast({ title: "Recargos actualizados ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              }}>
+                <Save className="h-4 w-4 mr-1" /> Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit client dialog */}
+      <Dialog open={!!editingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Editar Cliente</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input value={editClientName} onChange={(e) => setEditClientName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input value={editClientPhone} onChange={(e) => setEditClientPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Dirección</Label>
+              <Input value={editClientAddress} onChange={(e) => setEditClientAddress(e.target.value)} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+              <Button onClick={async () => {
+                if (!editingClient || !editClientName.trim()) return;
+                try {
+                  await updateClient(editingClient.id, { name: editClientName.trim(), phone: editClientPhone.trim(), address: editClientAddress.trim() });
+                  setEditingClient(null);
+                  await load();
+                  toast({ title: "Cliente actualizado ✓" });
                 } catch (err: any) {
                   toast({ title: err.message || "Error", variant: "destructive" });
                 }

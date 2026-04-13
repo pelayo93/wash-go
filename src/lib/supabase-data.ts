@@ -308,6 +308,16 @@ export async function insertClient(client: { name: string; phone: string; addres
   return data;
 }
 
+export async function updateClient(id: string, updates: { name?: string; phone?: string; address?: string }) {
+  const { error } = await supabase.from("clients").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteClient(id: string) {
+  const { error } = await supabase.from("clients").update({ active: false }).eq("id", id);
+  if (error) throw error;
+}
+
 export async function updateRentalPaymentPending(id: string, pending: boolean) {
   const { error } = await supabase.from("rentals").update({ payment_pending: pending }).eq("id", id);
   if (error) throw error;

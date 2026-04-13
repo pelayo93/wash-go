@@ -116,16 +116,20 @@ export default function Reportes() {
 
   // By delivery person
   const byPerson = useMemo(() => {
-    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number }> = {};
+    const map: Record<string, { deliveries: number; pickups: number; totalDeliveries: number; totalPickups: number; total: number; cashTotal: number; transferTotal: number }> = {};
     filteredRentals.forEach((r) => {
+      const cash = r.payment_split ? (r.payment_cash_amount || 0) : (r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
+      const transfer = r.payment_split ? (r.payment_transfer_amount || 0) : (!r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
       if (r.delivered_by) {
-        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+        if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.delivered_by].deliveries++;
         map[r.delivered_by].totalDeliveries += r.total;
         map[r.delivered_by].total += r.total;
+        map[r.delivered_by].cashTotal += cash;
+        map[r.delivered_by].transferTotal += transfer;
       }
       if (r.picked_up_by) {
-        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+        if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.picked_up_by].pickups++;
         map[r.picked_up_by].totalPickups += r.total;
       }
@@ -135,7 +139,7 @@ export default function Reportes() {
 
   // Services breakdown per person: { personName: [{ zone, serviceType, total, clientName, date }] }
   const personServices = useMemo(() => {
-    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string; role: string }[]> = {};
+    const map: Record<string, { zone: string; service_type: string; total: number; client_name: string; date: string; role: string; payment_method: string; payment_split: boolean; payment_cash: number; payment_transfer: number }[]> = {};
     filteredRentals.forEach((r) => {
       const base = {
         zone: r.zone,
@@ -143,6 +147,10 @@ export default function Reportes() {
         total: r.total,
         client_name: r.client_name,
         date: new Date(r.created_at).toLocaleDateString("es-CO"),
+        payment_method: r.payment_method || "-",
+        payment_split: r.payment_split || false,
+        payment_cash: r.payment_cash_amount || 0,
+        payment_transfer: r.payment_transfer_amount || 0,
       };
       if (r.delivered_by) {
         if (!map[r.delivered_by]) map[r.delivered_by] = [];
@@ -164,9 +172,9 @@ export default function Reportes() {
   }, [filteredRentals, selectedPerson]);
 
   const personSummary = useMemo(() => {
-    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+    if (!selectedPerson) return { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
     const data = byPerson.find(([name]) => name === selectedPerson);
-    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0 };
+    return data ? data[1] : { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
   }, [byPerson, selectedPerson]);
 
   const handleExportFinancialCSV = () => {
@@ -217,22 +225,23 @@ export default function Reportes() {
   const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
 
   const handleExportAllPersonsCSV = () => {
-    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]));
+    exportToCSV("reporte_repartidores", ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Efectivo", "Transferencia", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.cashTotal), formatCOP(d.transferTotal), formatCOP(d.total)]));
   };
 
   const handleExportAllPersonsPDF = () => {
     exportToPDF("Reporte por Repartidor", "reporte_repartidores",
-      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Total"],
-      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.total)]),
+      ["Repartidor", "Entregas", "$ Entregas", "Retiros", "$ Retiros", "Efectivo", "Transferencia", "Total"],
+      byPerson.map(([name, d]) => [name, d.deliveries.toString(), formatCOP(d.totalDeliveries), d.pickups.toString(), formatCOP(d.totalPickups), formatCOP(d.cashTotal), formatCOP(d.transferTotal), formatCOP(d.total)]),
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
   };
 
   const handleExportPersonCSV = () => {
     if (!selectedPerson) return;
-    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+    exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Método Pago", "Fecha", "Rol"],
       personRentals.map((r) => [
         r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        r.payment_split ? `Efectivo: ${formatCOP(r.payment_cash_amount || 0)} / Transfer: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
         new Date(r.created_at).toLocaleDateString("es-CO"),
         r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
       ]));
@@ -241,9 +250,10 @@ export default function Reportes() {
   const handleExportPersonPDF = () => {
     if (!selectedPerson) return;
     exportToPDF(`Cierre Repartidor: ${selectedPerson}`, `cierre_${selectedPerson}`,
-      ["Cliente", "Zona", "Servicio", "Total", "Fecha", "Rol"],
+      ["Cliente", "Zona", "Servicio", "Total", "Pago", "Fecha", "Rol"],
       personRentals.map((r) => [
         r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
+        r.payment_split ? `Ef: ${formatCOP(r.payment_cash_amount || 0)} / Tr: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
         new Date(r.created_at).toLocaleDateString("es-CO"),
         r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
       ]),
@@ -251,6 +261,8 @@ export default function Reportes() {
         { label: "Repartidor", value: selectedPerson },
         { label: "Entregas", value: personSummary.deliveries.toString() },
         { label: "Retiros", value: personSummary.pickups.toString() },
+        { label: "Efectivo", value: formatCOP(personSummary.cashTotal) },
+        { label: "Transferencia", value: formatCOP(personSummary.transferTotal) },
         { label: "Total", value: formatCOP(personSummary.total) },
       ]);
   };
@@ -498,6 +510,9 @@ export default function Reportes() {
                               <p className="text-xs text-muted-foreground">
                                 {data.deliveries} entregas ({formatCOP(data.totalDeliveries)}) • {data.pickups} retiros ({formatCOP(data.totalPickups)})
                               </p>
+                              <p className="text-xs text-muted-foreground">
+                                💵 {formatCOP(data.cashTotal)} • 📲 {formatCOP(data.transferTotal)}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -563,6 +578,16 @@ export default function Reportes() {
                   <p className="text-xs text-muted-foreground">Total Generado (entregas)</p>
                   <p className="text-lg font-bold text-primary">{formatCOP(personSummary.total)}</p>
                 </div>
+                <div className="grid grid-cols-2 gap-3 text-center pt-2 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground">💵 Efectivo</p>
+                    <p className="text-sm font-bold text-success">{formatCOP(personSummary.cashTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">📲 Transferencia</p>
+                    <p className="text-sm font-bold text-blue-500">{formatCOP(personSummary.transferTotal)}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Detail list */}
@@ -584,7 +609,10 @@ export default function Reportes() {
                           {r.zone} {r.service_type && `• ${r.service_type}`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(r.created_at).toLocaleDateString("es-CO")}
+                          {new Date(r.created_at).toLocaleDateString("es-CO")} •{" "}
+                          {r.payment_split
+                            ? `💵 ${formatCOP(r.payment_cash_amount || 0)} / 📲 ${formatCOP(r.payment_transfer_amount || 0)}`
+                            : (r.payment_method || "Sin método")}
                         </p>
                       </div>
                       <span className="font-semibold text-sm whitespace-nowrap">{formatCOP(r.total)}</span>
