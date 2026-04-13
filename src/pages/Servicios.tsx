@@ -515,6 +515,43 @@ export default function Servicios() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit client dialog */}
+      <Dialog open={!!editingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Editar Cliente</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input value={editClientName} onChange={(e) => setEditClientName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input value={editClientPhone} onChange={(e) => setEditClientPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Dirección</Label>
+              <Input value={editClientAddress} onChange={(e) => setEditClientAddress(e.target.value)} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+              <Button onClick={async () => {
+                if (!editingClient || !editClientName.trim()) return;
+                try {
+                  await updateClient(editingClient.id, { name: editClientName.trim(), phone: editClientPhone.trim(), address: editClientAddress.trim() });
+                  setEditingClient(null);
+                  await load();
+                  toast({ title: "Cliente actualizado ✓" });
+                } catch (err: any) {
+                  toast({ title: err.message || "Error", variant: "destructive" });
+                }
+              }}>
+                <Save className="h-4 w-4 mr-1" /> Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
