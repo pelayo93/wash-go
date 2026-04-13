@@ -602,7 +602,10 @@ export default function Reportes() {
                           {r.zone} {r.service_type && `• ${r.service_type}`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(r.created_at).toLocaleDateString("es-CO")}
+                          {new Date(r.created_at).toLocaleDateString("es-CO")} •{" "}
+                          {r.payment_split
+                            ? `💵 ${formatCOP(r.payment_cash_amount || 0)} / 📲 ${formatCOP(r.payment_transfer_amount || 0)}`
+                            : (r.payment_method || "Sin método")}
                         </p>
                       </div>
                       <span className="font-semibold text-sm whitespace-nowrap">{formatCOP(r.total)}</span>
