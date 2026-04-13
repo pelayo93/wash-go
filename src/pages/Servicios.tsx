@@ -38,8 +38,6 @@ export default function Servicios() {
   const [editClientName, setEditClientName] = useState("");
   const [editClientPhone, setEditClientPhone] = useState("");
   const [editClientAddress, setEditClientAddress] = useState("");
-  const [prices, setPrices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Surcharges
   const [extraHora, setExtraHora] = useState(3000);
