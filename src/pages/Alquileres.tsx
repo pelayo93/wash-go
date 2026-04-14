@@ -34,6 +34,7 @@ export default function Alquileres() {
   const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
+  const [historyDate, setHistoryDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
