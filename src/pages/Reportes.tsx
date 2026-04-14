@@ -134,7 +134,7 @@ export default function Reportes() {
         map[r.picked_up_by].pickups++;
         map[r.picked_up_by].totalPickups += r.total;
         // Sumar efectivo/transferencia del retiro solo si es otra persona (evitar doble conteo)
-        if (!sameerson) {
+        if (!sameperson) {
           map[r.picked_up_by].cashTotal += cash;
           map[r.picked_up_by].transferTotal += transfer;
         }
