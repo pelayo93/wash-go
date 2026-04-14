@@ -120,6 +120,7 @@ export default function Reportes() {
     filteredRentals.forEach((r) => {
       const cash = r.payment_split ? (r.payment_cash_amount || 0) : (r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
       const transfer = r.payment_split ? (r.payment_transfer_amount || 0) : (!r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
+      const sameperson = r.delivered_by && r.picked_up_by && r.delivered_by === r.picked_up_by;
       if (r.delivered_by) {
         if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.delivered_by].deliveries++;
@@ -132,6 +133,11 @@ export default function Reportes() {
         if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.picked_up_by].pickups++;
         map[r.picked_up_by].totalPickups += r.total;
+        // Sumar efectivo/transferencia del retiro solo si es otra persona (evitar doble conteo)
+        if (!sameerson) {
+          map[r.picked_up_by].cashTotal += cash;
+          map[r.picked_up_by].transferTotal += transfer;
+        }
       }
     });
     return Object.entries(map).sort(([, a], [, b]) => b.total - a.total);
