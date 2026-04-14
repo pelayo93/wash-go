@@ -681,6 +681,8 @@ export default function Alquileres() {
         <CardContent>
           {(() => {
             const filtered = rentals.filter((r) => {
+              const rentalDate = r.created_at?.split("T")[0];
+              if (historyDate && rentalDate !== historyDate) return false;
               if (filter === "active") return r.status === "active";
               if (filter === "completed") return r.status === "completed" && !r.payment_pending;
               if (filter === "pending") return r.payment_pending;
