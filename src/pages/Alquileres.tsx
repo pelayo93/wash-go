@@ -652,7 +652,13 @@ export default function Alquileres() {
               <WashingMachine className="h-5 w-5 text-primary" />
               Historial de Alquileres
             </CardTitle>
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                type="date"
+                value={historyDate}
+                onChange={(e) => setHistoryDate(e.target.value)}
+                className="h-7 text-xs w-[140px]"
+              />
               {([
                 ["all", "Todos"],
                 ["active", "Activos"],
