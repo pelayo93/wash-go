@@ -1,0 +1,1 @@
+UPDATE daily_closes SET date = '2026-04-13' WHERE id = 'bf59bbce-b199-4aa6-9507-f15e9b1ff9ff' AND date = '2026-04-14';
