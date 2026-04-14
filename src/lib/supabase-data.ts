@@ -88,8 +88,13 @@ export async function fetchCashEntries() {
   return data ?? [];
 }
 
+function getLocalDateString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 export async function fetchTodayCashEntries() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const { data, error } = await supabase
     .from("cash_entries")
     .select("*")
@@ -150,7 +155,7 @@ export async function insertDailyClose(close: {
 }
 
 export async function isTodayClosed() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const { data } = await supabase
     .from("daily_closes")
     .select("id")
