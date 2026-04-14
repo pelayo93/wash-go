@@ -34,6 +34,7 @@ export default function Alquileres() {
   const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
+  const [historyDate, setHistoryDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -651,7 +652,13 @@ export default function Alquileres() {
               <WashingMachine className="h-5 w-5 text-primary" />
               Historial de Alquileres
             </CardTitle>
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                type="date"
+                value={historyDate}
+                onChange={(e) => setHistoryDate(e.target.value)}
+                className="h-7 text-xs w-[140px]"
+              />
               {([
                 ["all", "Todos"],
                 ["active", "Activos"],
@@ -674,6 +681,8 @@ export default function Alquileres() {
         <CardContent>
           {(() => {
             const filtered = rentals.filter((r) => {
+              const rentalDate = r.created_at?.split("T")[0];
+              if (historyDate && rentalDate !== historyDate) return false;
               if (filter === "active") return r.status === "active";
               if (filter === "completed") return r.status === "completed" && !r.payment_pending;
               if (filter === "pending") return r.payment_pending;
