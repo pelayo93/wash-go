@@ -52,6 +52,7 @@ export async function updateRentalStatus(
   }
 ) {
   const updates: Record<string, any> = { status };
+  if (status === "completed") updates.completed_at = new Date().toISOString();
   if (extras?.pickedUpBy !== undefined) updates.picked_up_by = extras.pickedUpBy;
   if (extras?.exitTime) updates.exit_time = extras.exitTime;
   if (extras?.serviceType) updates.service_type = extras.serviceType;
