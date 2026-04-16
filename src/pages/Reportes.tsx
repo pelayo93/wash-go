@@ -21,11 +21,12 @@ export default function Reportes() {
   const [expandedZone, setExpandedZone] = useState<string | null>(null);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 3);
-    return d.toISOString().split("T")[0];
-  });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const getLocalDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const [startDate, setStartDate] = useState(getLocalDate);
+  const [endDate, setEndDate] = useState(getLocalDate);
 
   useEffect(() => {
     async function load() {
@@ -50,7 +51,8 @@ export default function Reportes() {
         map[c.date] = { income: c.total_income, expense: c.total_expense, count: 0, closed: true };
     });
     allEntries.forEach((e) => {
-      const date = e.created_at.split("T")[0];
+      const d = new Date(e.created_at);
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       if (date >= startDate && date <= endDate && !map[date]?.closed) {
         if (!map[date]) map[date] = { income: 0, expense: 0, count: 0, closed: false };
         map[date].count++;
@@ -64,10 +66,14 @@ export default function Reportes() {
   const totalIncome = byDate.reduce((s, [, d]) => s + d.income, 0);
   const totalExpense = byDate.reduce((s, [, d]) => s + d.expense, 0);
 
-  // Rentals in range
+  // Rentals in range (use local date)
+  const toLocalDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
   const filteredRentals = useMemo(() =>
     allRentals.filter((r) => {
-      const d = r.created_at.split("T")[0];
+      const d = toLocalDate(r.created_at);
       return d >= startDate && d <= endDate;
     }), [allRentals, startDate, endDate]);
 
