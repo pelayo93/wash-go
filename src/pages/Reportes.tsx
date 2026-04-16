@@ -21,11 +21,12 @@ export default function Reportes() {
   const [expandedZone, setExpandedZone] = useState<string | null>(null);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 3);
-    return d.toISOString().split("T")[0];
-  });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const getLocalDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const [startDate, setStartDate] = useState(getLocalDate);
+  const [endDate, setEndDate] = useState(getLocalDate);
 
   useEffect(() => {
     async function load() {
