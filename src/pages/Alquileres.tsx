@@ -34,7 +34,10 @@ export default function Alquileres() {
   const [rentals, setRentals] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
-  const [historyDate, setHistoryDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [historyDate, setHistoryDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [loading, setLoading] = useState(true);
   const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -681,7 +684,12 @@ export default function Alquileres() {
         <CardContent>
           {(() => {
             const filtered = rentals.filter((r) => {
-              const rentalDate = r.created_at?.split("T")[0];
+              const ref = r.completed_at || r.created_at;
+              let rentalDate = "";
+              if (ref) {
+                const dt = new Date(ref);
+                rentalDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+              }
               if (historyDate && rentalDate !== historyDate) return false;
               if (filter === "active") return r.status === "active";
               if (filter === "completed") return r.status === "completed" && !r.payment_pending;
