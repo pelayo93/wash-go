@@ -493,7 +493,81 @@ export default function Reportes() {
           </Card>
         </TabsContent>
 
-        {/* Zone tab */}
+        {/* Detalle tab — cada centavo */}
+        <TabsContent value="detalle">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="section-title flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-primary" /> Detalle de Movimientos
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={handleExportDetailCSV}>
+                    <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportDetailPDF}>
+                    <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {detailedEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">No hay movimientos en este rango</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Resumen totales */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+                      <p className="text-xs text-muted-foreground">Total Ingresos</p>
+                      <p className="text-lg font-bold text-success">+{formatCOP(detailIncome)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-xs text-muted-foreground">Total Egresos</p>
+                      <p className="text-lg font-bold text-destructive">-{formatCOP(detailExpense)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                      <p className="text-xs text-muted-foreground">Balance ({detailedEntries.length} mov.)</p>
+                      <p className="text-lg font-bold">{formatCOP(detailIncome - detailExpense)}</p>
+                    </div>
+                  </div>
+
+                  {/* Grupos por categoría */}
+                  {categorizedDetail.map(([cat, g]) => (
+                    <div key={cat} className="rounded-lg border border-border overflow-hidden">
+                      <div className={`flex items-center justify-between p-3 ${g.type === "income" ? "bg-success/5" : "bg-destructive/5"}`}>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={g.type === "income" ? "default" : "destructive"} className="text-[10px]">
+                            {g.items.length}
+                          </Badge>
+                          <p className="font-semibold text-sm">{cat}</p>
+                        </div>
+                        <p className={`font-bold text-sm ${g.type === "income" ? "text-success" : "text-destructive"}`}>
+                          {g.type === "income" ? "+" : "-"}{formatCOP(g.total)}
+                        </p>
+                      </div>
+                      <div className="divide-y divide-border">
+                        {g.items.map((e) => (
+                          <div key={e.id} className="flex items-start justify-between gap-3 p-3 text-xs hover:bg-secondary/30">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-muted-foreground font-mono">{formatBogotaDateTime(e.created_at)}</p>
+                              <p className="font-medium text-foreground break-words">{e.description || "(sin descripción)"}</p>
+                            </div>
+                            <p className={`font-semibold whitespace-nowrap ${e.type === "income" ? "text-success" : "text-destructive"}`}>
+                              {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
         <TabsContent value="zonas">
           <Card>
             <CardHeader className="pb-3">
