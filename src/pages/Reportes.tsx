@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
