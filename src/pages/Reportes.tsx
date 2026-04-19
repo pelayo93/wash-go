@@ -68,15 +68,11 @@ export default function Reportes() {
   const totalIncome = byDate.reduce((s, [, d]) => s + d.income, 0);
   const totalExpense = byDate.reduce((s, [, d]) => s + d.expense, 0);
 
-  // Rentals in range (use local date based on completion when available)
-  const toLocalDate = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
+  // Rentals in range (use Bogota local date based on completion when available)
   const filteredRentals = useMemo(() =>
     allRentals.filter((r) => {
       const ref = r.completed_at || r.created_at;
-      const d = toLocalDate(ref);
+      const d = toBogotaDate(ref);
       return d >= startDate && d <= endDate;
     }), [allRentals, startDate, endDate]);
 
