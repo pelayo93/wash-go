@@ -249,14 +249,31 @@ export default function Reportes() {
       [{ label: "Total Entregas", value: totalDeliveries.toString() }, { label: "Total Retiros", value: totalPickups.toString() }, { label: "Total General", value: formatCOP(totalPersonAmount) }]);
   };
 
+  // Build action rows: one row per role (delivery and/or pickup) so row count matches summary counts.
+  const personActionRows = useMemo(() => {
+    if (!selectedPerson) return [] as any[];
+    const rows: any[] = [];
+    personRentals.forEach((r) => {
+      const refDate = r.completed_at || r.created_at;
+      const fecha = new Date(refDate).toLocaleDateString("es-CO");
+      const pago = r.payment_split
+        ? `Ef: ${formatCOP(r.payment_cash_amount || 0)} / Tr: ${formatCOP(r.payment_transfer_amount || 0)}`
+        : (r.payment_method || "-");
+      if (r.delivered_by === selectedPerson) {
+        rows.push({ ...r, _role: "Entrega", _fecha: fecha, _pago: pago });
+      }
+      if (r.picked_up_by === selectedPerson) {
+        rows.push({ ...r, _role: "Retiro", _fecha: fecha, _pago: pago });
+      }
+    });
+    return rows;
+  }, [personRentals, selectedPerson]);
+
   const handleExportPersonCSV = () => {
     if (!selectedPerson) return;
     exportToCSV(`cierre_${selectedPerson}`, ["Cliente", "Zona", "Servicio", "Total", "Método Pago", "Fecha", "Rol"],
-      personRentals.map((r) => [
-        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
-        r.payment_split ? `Efectivo: ${formatCOP(r.payment_cash_amount || 0)} / Transfer: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
-        new Date(r.created_at).toLocaleDateString("es-CO"),
-        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      personActionRows.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total), r._pago, r._fecha, r._role,
       ]));
   };
 
@@ -264,11 +281,8 @@ export default function Reportes() {
     if (!selectedPerson) return;
     exportToPDF(`Cierre Repartidor: ${selectedPerson}`, `cierre_${selectedPerson}`,
       ["Cliente", "Zona", "Servicio", "Total", "Pago", "Fecha", "Rol"],
-      personRentals.map((r) => [
-        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total),
-        r.payment_split ? `Ef: ${formatCOP(r.payment_cash_amount || 0)} / Tr: ${formatCOP(r.payment_transfer_amount || 0)}` : (r.payment_method || "-"),
-        new Date(r.created_at).toLocaleDateString("es-CO"),
-        r.delivered_by === selectedPerson ? "Entrega" : "Retiro",
+      personActionRows.map((r) => [
+        r.client_name, r.zone, r.service_type || "-", formatCOP(r.total), r._pago, r._fecha, r._role,
       ]),
       [
         { label: "Repartidor", value: selectedPerson },
