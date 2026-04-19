@@ -443,6 +443,7 @@ export default function Reportes() {
       <Tabs defaultValue="financiero" className="space-y-4">
         <TabsList>
           <TabsTrigger value="financiero">Financiero</TabsTrigger>
+          <TabsTrigger value="detalle">Detalle</TabsTrigger>
           <TabsTrigger value="zonas">Por Zona</TabsTrigger>
           <TabsTrigger value="personas">Por Repartidor</TabsTrigger>
         </TabsList>
