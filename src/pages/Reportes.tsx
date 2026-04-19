@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -292,6 +292,93 @@ export default function Reportes() {
       ]);
   };
 
+  // ── Detalle: cada movimiento de caja en el rango ──
+  const detailedEntries = useMemo(() => {
+    return allEntries
+      .map((e) => ({ ...e, _bogotaDate: toBogotaDate(e.created_at) }))
+      .filter((e) => e._bogotaDate >= startDate && e._bogotaDate <= endDate)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [allEntries, startDate, endDate]);
+
+  const categorizedDetail = useMemo(() => {
+    const labelFor = (e: any) => {
+      if (e.type === "expense") return "Egreso";
+      const cat = (e.category || "").toLowerCase();
+      if (cat === "alquiler") return "Ingreso · Alquileres";
+      if (cat === "gas") return "Ingreso · Gas";
+      return "Ingreso · Otros";
+    };
+    const groups: Record<string, { items: any[]; total: number; type: "income" | "expense" }> = {};
+    detailedEntries.forEach((e) => {
+      const key = labelFor(e);
+      if (!groups[key]) groups[key] = { items: [], total: 0, type: e.type as any };
+      groups[key].items.push(e);
+      groups[key].total += e.amount;
+    });
+    // Sort: incomes first by total desc, then expenses
+    return Object.entries(groups).sort((a, b) => {
+      if (a[1].type !== b[1].type) return a[1].type === "income" ? -1 : 1;
+      return b[1].total - a[1].total;
+    });
+  }, [detailedEntries]);
+
+  const detailIncome = detailedEntries.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0);
+  const detailExpense = detailedEntries.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
+
+  const formatBogotaDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "2-digit", month: "2-digit", year: "numeric" });
+    const time = d.toLocaleTimeString("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${date} ${time}`;
+  };
+
+  const handleExportDetailCSV = () => {
+    const rows: string[][] = [];
+    categorizedDetail.forEach(([cat, g]) => {
+      g.items.forEach((e) => {
+        rows.push([
+          cat,
+          formatBogotaDateTime(e.created_at),
+          e.description || "-",
+          e.type === "income" ? "Ingreso" : "Egreso",
+          e.type === "income" ? formatCOP(e.amount) : `-${formatCOP(e.amount)}`,
+        ]);
+      });
+      rows.push([`SUBTOTAL ${cat}`, "", "", "", formatCOP(g.total)]);
+    });
+    rows.push(["", "", "", "TOTAL INGRESOS", formatCOP(detailIncome)]);
+    rows.push(["", "", "", "TOTAL EGRESOS", `-${formatCOP(detailExpense)}`]);
+    rows.push(["", "", "", "BALANCE", formatCOP(detailIncome - detailExpense)]);
+    exportToCSV("reporte_detallado", ["Categoría", "Fecha y Hora", "Descripción", "Tipo", "Monto"], rows);
+  };
+
+  const handleExportDetailPDF = () => {
+    const rows: string[][] = [];
+    categorizedDetail.forEach(([cat, g]) => {
+      g.items.forEach((e) => {
+        rows.push([
+          cat,
+          formatBogotaDateTime(e.created_at),
+          (e.description || "-").substring(0, 60),
+          e.type === "income" ? formatCOP(e.amount) : `-${formatCOP(e.amount)}`,
+        ]);
+      });
+      rows.push([`SUBTOTAL ${cat}`, "", "", formatCOP(g.total)]);
+    });
+    exportToPDF(
+      `Detalle de Movimientos (${startDate} a ${endDate})`,
+      "reporte_detallado",
+      ["Categoría", "Fecha/Hora", "Descripción", "Monto"],
+      rows,
+      [
+        { label: "Total Ingresos", value: formatCOP(detailIncome) },
+        { label: "Total Egresos", value: formatCOP(detailExpense) },
+        { label: "Balance", value: formatCOP(detailIncome - detailExpense) },
+        { label: "Movimientos", value: detailedEntries.length.toString() },
+      ]
+    );
+  };
+
   if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
 
   return (
@@ -356,6 +443,7 @@ export default function Reportes() {
       <Tabs defaultValue="financiero" className="space-y-4">
         <TabsList>
           <TabsTrigger value="financiero">Financiero</TabsTrigger>
+          <TabsTrigger value="detalle">Detalle</TabsTrigger>
           <TabsTrigger value="zonas">Por Zona</TabsTrigger>
           <TabsTrigger value="personas">Por Repartidor</TabsTrigger>
         </TabsList>
@@ -405,7 +493,81 @@ export default function Reportes() {
           </Card>
         </TabsContent>
 
-        {/* Zone tab */}
+        {/* Detalle tab — cada centavo */}
+        <TabsContent value="detalle">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="section-title flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-primary" /> Detalle de Movimientos
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={handleExportDetailCSV}>
+                    <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportDetailPDF}>
+                    <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {detailedEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">No hay movimientos en este rango</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Resumen totales */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+                      <p className="text-xs text-muted-foreground">Total Ingresos</p>
+                      <p className="text-lg font-bold text-success">+{formatCOP(detailIncome)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-xs text-muted-foreground">Total Egresos</p>
+                      <p className="text-lg font-bold text-destructive">-{formatCOP(detailExpense)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                      <p className="text-xs text-muted-foreground">Balance ({detailedEntries.length} mov.)</p>
+                      <p className="text-lg font-bold">{formatCOP(detailIncome - detailExpense)}</p>
+                    </div>
+                  </div>
+
+                  {/* Grupos por categoría */}
+                  {categorizedDetail.map(([cat, g]) => (
+                    <div key={cat} className="rounded-lg border border-border overflow-hidden">
+                      <div className={`flex items-center justify-between p-3 ${g.type === "income" ? "bg-success/5" : "bg-destructive/5"}`}>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={g.type === "income" ? "default" : "destructive"} className="text-[10px]">
+                            {g.items.length}
+                          </Badge>
+                          <p className="font-semibold text-sm">{cat}</p>
+                        </div>
+                        <p className={`font-bold text-sm ${g.type === "income" ? "text-success" : "text-destructive"}`}>
+                          {g.type === "income" ? "+" : "-"}{formatCOP(g.total)}
+                        </p>
+                      </div>
+                      <div className="divide-y divide-border">
+                        {g.items.map((e) => (
+                          <div key={e.id} className="flex items-start justify-between gap-3 p-3 text-xs hover:bg-secondary/30">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-muted-foreground font-mono">{formatBogotaDateTime(e.created_at)}</p>
+                              <p className="font-medium text-foreground break-words">{e.description || "(sin descripción)"}</p>
+                            </div>
+                            <p className={`font-semibold whitespace-nowrap ${e.type === "income" ? "text-success" : "text-destructive"}`}>
+                              {e.type === "income" ? "+" : "-"}{formatCOP(e.amount)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
         <TabsContent value="zonas">
           <Card>
             <CardHeader className="pb-3">
