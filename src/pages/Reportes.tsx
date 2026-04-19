@@ -292,6 +292,93 @@ export default function Reportes() {
       ]);
   };
 
+  // ── Detalle: cada movimiento de caja en el rango ──
+  const detailedEntries = useMemo(() => {
+    return allEntries
+      .map((e) => ({ ...e, _bogotaDate: toBogotaDate(e.created_at) }))
+      .filter((e) => e._bogotaDate >= startDate && e._bogotaDate <= endDate)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [allEntries, startDate, endDate]);
+
+  const categorizedDetail = useMemo(() => {
+    const labelFor = (e: any) => {
+      if (e.type === "expense") return "Egreso";
+      const cat = (e.category || "").toLowerCase();
+      if (cat === "alquiler") return "Ingreso · Alquileres";
+      if (cat === "gas") return "Ingreso · Gas";
+      return "Ingreso · Otros";
+    };
+    const groups: Record<string, { items: any[]; total: number; type: "income" | "expense" }> = {};
+    detailedEntries.forEach((e) => {
+      const key = labelFor(e);
+      if (!groups[key]) groups[key] = { items: [], total: 0, type: e.type as any };
+      groups[key].items.push(e);
+      groups[key].total += e.amount;
+    });
+    // Sort: incomes first by total desc, then expenses
+    return Object.entries(groups).sort((a, b) => {
+      if (a[1].type !== b[1].type) return a[1].type === "income" ? -1 : 1;
+      return b[1].total - a[1].total;
+    });
+  }, [detailedEntries]);
+
+  const detailIncome = detailedEntries.filter((e) => e.type === "income").reduce((s, e) => s + e.amount, 0);
+  const detailExpense = detailedEntries.filter((e) => e.type === "expense").reduce((s, e) => s + e.amount, 0);
+
+  const formatBogotaDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "2-digit", month: "2-digit", year: "numeric" });
+    const time = d.toLocaleTimeString("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${date} ${time}`;
+  };
+
+  const handleExportDetailCSV = () => {
+    const rows: string[][] = [];
+    categorizedDetail.forEach(([cat, g]) => {
+      g.items.forEach((e) => {
+        rows.push([
+          cat,
+          formatBogotaDateTime(e.created_at),
+          e.description || "-",
+          e.type === "income" ? "Ingreso" : "Egreso",
+          e.type === "income" ? formatCOP(e.amount) : `-${formatCOP(e.amount)}`,
+        ]);
+      });
+      rows.push([`SUBTOTAL ${cat}`, "", "", "", formatCOP(g.total)]);
+    });
+    rows.push(["", "", "", "TOTAL INGRESOS", formatCOP(detailIncome)]);
+    rows.push(["", "", "", "TOTAL EGRESOS", `-${formatCOP(detailExpense)}`]);
+    rows.push(["", "", "", "BALANCE", formatCOP(detailIncome - detailExpense)]);
+    exportToCSV("reporte_detallado", ["Categoría", "Fecha y Hora", "Descripción", "Tipo", "Monto"], rows);
+  };
+
+  const handleExportDetailPDF = () => {
+    const rows: string[][] = [];
+    categorizedDetail.forEach(([cat, g]) => {
+      g.items.forEach((e) => {
+        rows.push([
+          cat,
+          formatBogotaDateTime(e.created_at),
+          (e.description || "-").substring(0, 60),
+          e.type === "income" ? formatCOP(e.amount) : `-${formatCOP(e.amount)}`,
+        ]);
+      });
+      rows.push([`SUBTOTAL ${cat}`, "", "", formatCOP(g.total)]);
+    });
+    exportToPDF(
+      `Detalle de Movimientos (${startDate} a ${endDate})`,
+      "reporte_detallado",
+      ["Categoría", "Fecha/Hora", "Descripción", "Monto"],
+      rows,
+      [
+        { label: "Total Ingresos", value: formatCOP(detailIncome) },
+        { label: "Total Egresos", value: formatCOP(detailExpense) },
+        { label: "Balance", value: formatCOP(detailIncome - detailExpense) },
+        { label: "Movimientos", value: detailedEntries.length.toString() },
+      ]
+    );
+  };
+
   if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Cargando...</p>;
 
   return (
