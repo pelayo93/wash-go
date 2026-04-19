@@ -54,8 +54,7 @@ export default function Reportes() {
         map[c.date] = { income: c.total_income, expense: c.total_expense, count: 0, closed: true };
     });
     allEntries.forEach((e) => {
-      const d = new Date(e.created_at);
-      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const date = toBogotaDate(e.created_at);
       if (date >= startDate && date <= endDate && !map[date]?.closed) {
         if (!map[date]) map[date] = { income: 0, expense: 0, count: 0, closed: false };
         map[date].count++;
