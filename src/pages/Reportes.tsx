@@ -21,10 +21,13 @@ export default function Reportes() {
   const [expandedZone, setExpandedZone] = useState<string | null>(null);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
-  const getLocalDate = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // Convert any date/ISO to a YYYY-MM-DD string in Colombia timezone (UTC-5)
+  const toBogotaDate = (input: string | Date) => {
+    const d = typeof input === "string" ? new Date(input) : input;
+    // en-CA produces YYYY-MM-DD format
+    return d.toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
   };
+  const getLocalDate = () => toBogotaDate(new Date());
   const [startDate, setStartDate] = useState(getLocalDate);
   const [endDate, setEndDate] = useState(getLocalDate);
 
