@@ -26,7 +26,7 @@ export interface Rental {
   payment_transfer_amount: number | null;
   payment_pending: boolean;
   completed_at: string | null;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }
 
