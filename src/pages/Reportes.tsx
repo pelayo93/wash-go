@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import type { CashEntry, DailyClose, Rental } from "@/types";
 import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, MapPin, UserCheck, Eye, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,9 @@ import { fetchCashEntries, fetchDailyCloses, fetchRentals } from "@/lib/supabase
 import { exportToCSV, exportToPDF } from "@/lib/exportUtils";
 
 export default function Reportes() {
-  const [allEntries, setAllEntries] = useState<any[]>([]);
-  const [dailyCloses, setDailyCloses] = useState<any[]>([]);
-  const [allRentals, setAllRentals] = useState<any[]>([]);
+  const [allEntries, setAllEntries] = useState<CashEntry[]>([]);
+  const [dailyCloses, setDailyCloses] = useState<DailyClose[]>([]);
+  const [allRentals, setAllRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
@@ -257,8 +258,8 @@ export default function Reportes() {
 
   // Build action rows: one row per role (delivery and/or pickup) so row count matches summary counts.
   const personActionRows = useMemo(() => {
-    if (!selectedPerson) return [] as any[];
-    const rows: any[] = [];
+    if (!selectedPerson) return [] as (Rental & { _role: string; _fecha: string; _pago: string })[];
+    const rows: (Rental & { _role: string; _fecha: string; _pago: string })[] = [];
     personRentals.forEach((r) => {
       const refDate = r.completed_at || r.created_at;
       const fecha = new Date(refDate).toLocaleDateString("es-CO");
@@ -309,17 +310,17 @@ export default function Reportes() {
   }, [allEntries, startDate, endDate]);
 
   const categorizedDetail = useMemo(() => {
-    const labelFor = (e: any) => {
+    const labelFor = (e: CashEntry) => {
       if (e.type === "expense") return "Egreso";
       const cat = (e.category || "").toLowerCase();
       if (cat === "alquiler") return "Ingreso · Alquileres";
       if (cat === "gas") return "Ingreso · Gas";
       return "Ingreso · Otros";
     };
-    const groups: Record<string, { items: any[]; total: number; type: "income" | "expense" }> = {};
+    const groups: Record<string, { items: CashEntry[]; total: number; type: "income" | "expense" }> = {};
     detailedEntries.forEach((e) => {
       const key = labelFor(e);
-      if (!groups[key]) groups[key] = { items: [], total: 0, type: e.type as any };
+      if (!groups[key]) groups[key] = { items: [], total: 0, type: e.type };
       groups[key].items.push(e);
       groups[key].total += e.amount;
     });
