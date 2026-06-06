@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  WashingMachine,
+import type { Rental, CashEntry, PaymentMethod, DaySummary } from "@/types";
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -31,15 +30,15 @@ import { useToast } from "@/hooks/use-toast";
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeRentals, setActiveRentals] = useState<any[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
-  const [recentEntries, setRecentEntries] = useState<any[]>([]);
-  const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
+  const [activeRentals, setActiveRentals] = useState<Rental[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<Rental[]>([]);
+  const [recentEntries, setRecentEntries] = useState<CashEntry[]>([]);
+  const [summary, setSummary] = useState<DaySummary>({ income: 0, expense: 0, balance: 0 });
   const [loading, setLoading] = useState(true);
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   // Collect payment state
-  const [collectingRental, setCollectingRental] = useState<any | null>(null);
+  const [collectingRental, setCollectingRental] = useState<Rental | null>(null);
   const [collectPaymentMethod, setCollectPaymentMethod] = useState("");
   const [collectPaymentSplit, setCollectPaymentSplit] = useState(false);
   const [collectCashAmount, setCollectCashAmount] = useState(0);
@@ -74,7 +73,7 @@ export default function Dashboard() {
 
   const pendingTotal = pendingPayments.reduce((s, r) => s + r.total, 0);
 
-  const openCollectDialog = (rental: any) => {
+  const openCollectDialog = (rental: Rental) => {
     setCollectingRental(rental);
     setCollectPaymentMethod("");
     setCollectPaymentSplit(false);
