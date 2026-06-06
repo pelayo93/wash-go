@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { Rental, DeliveryPerson, Client, PaymentMethod } from "@/types";
 import {
   WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame, Trash2,
 } from "lucide-react";
@@ -31,7 +32,7 @@ import DeliveryPeopleManager from "@/components/DeliveryPeopleManager";
 export default function Alquileres() {
   const { toast } = useToast();
   const { user, role } = useAuth();
-  const [rentals, setRentals] = useState<any[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending">("all");
   const [historyDate, setHistoryDate] = useState(() => {
@@ -39,20 +40,20 @@ export default function Alquileres() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
   const [loading, setLoading] = useState(true);
-  const [deliveryPeople, setDeliveryPeople] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [deliveryPeople, setDeliveryPeople] = useState<DeliveryPerson[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const { zones: ZONES, reload: reloadZones } = useZones();
   const { surcharges } = useSurcharges();
 
   // Complete dialog state
-  const [completingRental, setCompletingRental] = useState<any | null>(null);
+  const [completingRental, setCompletingRental] = useState<Rental | null>(null);
   const [completePickedUpBy, setCompletePickedUpBy] = useState("");
   const [completeExitTime, setCompleteExitTime] = useState("");
   const [completeZone, setCompleteZone] = useState("");
   const [completeServiceType, setCompleteServiceType] = useState("");
   const [completeExtraHours, setCompleteExtraHours] = useState(0);
   const [completeFloorSurchargeCustom, setCompleteFloorSurchargeCustom] = useState(0);
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [completePaymentMethod, setCompletePaymentMethod] = useState("");
   const [completePaymentSplit, setCompletePaymentSplit] = useState(false);
   const [completeCashAmount, setCompleteCashAmount] = useState(0);
@@ -130,7 +131,7 @@ export default function Alquileres() {
     setShowForm(false);
   };
 
-  const openCompleteDialog = (rental: any) => {
+  const openCompleteDialog = (rental: Rental) => {
     setCompletingRental(rental);
     setCompleteZone(rental.zone || "");
     setCompleteServiceType("");
@@ -270,7 +271,7 @@ export default function Alquileres() {
     }
   };
 
-  const openCollectDialog = (rental: any) => {
+  const openCollectDialog = (rental: Rental) => {
     setCollectingRental(rental);
     setCollectPaymentMethod("");
     setCollectPaymentSplit(false);
