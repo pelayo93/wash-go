@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchZones, fetchZonePrices } from "@/lib/supabase-data";
+import type { Zone, ZonePrice } from "@/types";
 
 export interface ZonePricing {
   name: string;
@@ -17,11 +18,11 @@ export function useZones() {
         fetchZones(),
         fetchZonePrices(),
       ]);
-      const mapped: ZonePricing[] = zoneRows.map((z: any) => {
+      const mapped: ZonePricing[] = zoneRows.map((z: Zone) => {
         const prices: Record<string, number> = {};
         priceRows
-          .filter((p: any) => p.zone_id === z.id)
-          .forEach((p: any) => {
+          .filter((p: ZonePrice) => p.zone_id === z.id)
+          .forEach((p: ZonePrice) => {
             prices[p.service_name] = p.price;
           });
         return { id: z.id, name: z.name, prices };
