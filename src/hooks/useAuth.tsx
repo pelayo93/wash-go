@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) return;
     try {
       localStorage.setItem(ROLE_CACHE_PREFIX + userId, value ?? "null");
-    } catch (e) {
-      console.warn("failed to write role cache", e);
+    } catch {
+      // silently ignore storage errors
     }
   };
 
@@ -67,8 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const v = localStorage.getItem(ROLE_CACHE_PREFIX + userId);
       if (v === null) return undefined;
       return v === "null" ? null : (v as AppRole);
-    } catch (e) {
-      console.warn("failed to read role cache", e);
+    } catch {
       return undefined;
     }
   };
@@ -88,11 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("user_id", userId)
           .maybeSingle(),
         timeoutPromise,
-      ])) as { data: { role: string } | null; error: any };
+      ])) as { data: { role: string } | null; error: { message: string } | null };
 
       if (error) throw error;
       const resolved = (data?.role as AppRole) ?? null;
-      console.debug("fetchRole result", { userId, resolved });
       setRole(resolved);
       cacheRole(userId, resolved);
     } catch (err) {
@@ -124,20 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // try JWT metadata first
         const metaRole = session.user.app_metadata?.role as AppRole | undefined;
         if (metaRole !== undefined) {
-          console.debug("using role from JWT metadata", {
-            user: session.user.id,
-            role: metaRole,
-          });
           setRole(metaRole);
           cacheRole(session.user.id, metaRole);
         } else {
-          // read cached role to avoid spinner while we refresh in background
           const cached = readCachedRole(session.user.id);
           if (cached !== undefined) {
-            console.debug("using cached role", {
-              user: session.user.id,
-              role: cached,
-            });
             setRole(cached);
           } else {
             // unknown until fetch completes
@@ -145,9 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // refresh in background, don't await to avoid blocking UI
-          fetchRole(session.user.id).catch((e) =>
-            console.debug("background fetchRole error", e),
-          );
+          fetchRole(session.user.id).catch(() => {
+            // background refresh failed silently
+          });
         }
       } else {
         setRole(null);
@@ -158,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.debug("auth event", event, session);
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
       }
@@ -261,7 +249,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loading) return;
     const timer = setTimeout(() => {
-      console.warn("authentication check timed out");
       setError("La verificación de sesión tardó demasiado");
       toast({
         title: "Error de autenticación",
