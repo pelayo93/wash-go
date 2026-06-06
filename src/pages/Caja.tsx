@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { CashEntry, CashAuditLog } from "@/types";
 import {
   ArrowUpRight, ArrowDownRight, Plus, Lock, TrendingUp, TrendingDown,
   Pencil, Trash2, Check, X, ClipboardList, Flame,
@@ -27,10 +28,10 @@ import {
 export default function Caja() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [entries, setEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<CashEntry[]>([]);
   const [closed, setClosed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [auditLog, setAuditLog] = useState<CashAuditLog[]>([]);
   const [showAudit, setShowAudit] = useState(false);
 
   // Form
@@ -109,7 +110,7 @@ export default function Caja() {
     } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
-  const handleDelete = async (id: string, entry: any) => {
+  const handleDelete = async (id: string, entry: CashEntry) => {
     try {
       await deleteCashEntry(id);
       await logAudit("delete", id, { type: entry.type, amount: entry.amount, description: entry.description });
@@ -118,13 +119,13 @@ export default function Caja() {
     } catch (err: any) { toast({ title: err.message, variant: "destructive" }); }
   };
 
-  const startEdit = (entry: any) => {
+  const startEdit = (entry: CashEntry) => {
     setEditingId(entry.id); setEditAmount(entry.amount.toString()); setEditDescription(entry.description);
   };
 
   const cancelEdit = () => { setEditingId(null); setEditAmount(""); setEditDescription(""); };
 
-  const saveEdit = async (id: string, oldEntry: any) => {
+  const saveEdit = async (id: string, oldEntry: CashEntry) => {
     const amt = Number(editAmount);
     if (!amt || amt <= 0) { toast({ title: "Monto inválido", variant: "destructive" }); return; }
     try {
