@@ -45,7 +45,7 @@ export default function Dashboard() {
   const [collectCashAmount, setCollectCashAmount] = useState(0);
   const [collectTransferAmount, setCollectTransferAmount] = useState(0);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [rentals, entries, pm] = await Promise.all([fetchRentals(), fetchTodayCashEntries(), fetchPaymentMethods()]);
       setActiveRentals(rentals.filter((r) => r.status === "active"));
@@ -60,7 +60,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
