@@ -94,13 +94,22 @@ function getLocalDateString() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+// Devuelve el inicio y fin del día local como fechas UTC correctas,
+// independientemente del huso horario del servidor o del navegador.
+function getLocalDayUTCRange() {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const endOfDay   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return { start: startOfDay.toISOString(), end: endOfDay.toISOString() };
+}
+
 export async function fetchTodayCashEntries() {
-  const today = getLocalDateString();
+  const { start, end } = getLocalDayUTCRange();
   const { data, error } = await supabase
     .from("cash_entries")
     .select("*")
-    .gte("created_at", `${today}T00:00:00`)
-    .lt("created_at", `${today}T23:59:59.999`)
+    .gte("created_at", start)
+    .lte("created_at", end)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
