@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { Zone, ZonePrice, Client, PaymentMethod } from "@/types";
 import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,14 +28,14 @@ import { useAuth } from "@/hooks/useAuth";
 export default function Servicios() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [zones, setZones] = useState<any[]>([]);
-  const [prices, setPrices] = useState<any[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [prices, setPrices] = useState<ZonePrice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clientsList, setClientsList] = useState<any[]>([]);
+  const [clientsList, setClientsList] = useState<Client[]>([]);
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
-  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editClientName, setEditClientName] = useState("");
   const [editClientPhone, setEditClientPhone] = useState("");
   const [editClientAddress, setEditClientAddress] = useState("");
@@ -49,7 +50,7 @@ export default function Servicios() {
   const [editPiso56, setEditPiso56] = useState("");
 
   // Payment methods
-  const [pmList, setPmList] = useState<any[]>([]);
+  const [pmList, setPmList] = useState<PaymentMethod[]>([]);
   const [newPmName, setNewPmName] = useState("");
 
   // New zone
