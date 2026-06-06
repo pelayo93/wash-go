@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Rental, CashEntry, PaymentMethod, DaySummary } from "@/types";
+import {
+  WashingMachine,
   TrendingUp,
   TrendingDown,
   DollarSign,
