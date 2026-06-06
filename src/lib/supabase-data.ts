@@ -1,14 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Rental, CashEntry, DailyClose, DeliveryPerson, Zone, ZonePrice, PaymentMethod, Client, CashAuditLog } from "@/types";
 
 // ── Rentals ──
 
-export async function fetchRentals() {
+export async function fetchRentals(): Promise<Rental[]> {
   const { data, error } = await supabase
     .from("rentals")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Rental[];
 }
 
 export async function insertRental(rental: {
@@ -80,13 +81,13 @@ export async function deleteRental(id: string) {
 
 // ── Cash Entries ──
 
-export async function fetchCashEntries() {
+export async function fetchCashEntries(): Promise<CashEntry[]> {
   const { data, error } = await supabase
     .from("cash_entries")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as CashEntry[];
 }
 
 function getLocalDateString() {
@@ -103,7 +104,7 @@ function getLocalDayUTCRange() {
   return { start: startOfDay.toISOString(), end: endOfDay.toISOString() };
 }
 
-export async function fetchTodayCashEntries() {
+export async function fetchTodayCashEntries(): Promise<CashEntry[]> {
   const { start, end } = getLocalDayUTCRange();
   const { data, error } = await supabase
     .from("cash_entries")
@@ -112,7 +113,7 @@ export async function fetchTodayCashEntries() {
     .lte("created_at", end)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as CashEntry[];
 }
 
 export async function insertCashEntry(entry: {
@@ -144,13 +145,13 @@ export async function deleteCashEntry(id: string) {
 
 // ── Daily Closes ──
 
-export async function fetchDailyCloses() {
+export async function fetchDailyCloses(): Promise<DailyClose[]> {
   const { data, error } = await supabase
     .from("daily_closes")
     .select("*")
     .order("date", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as DailyClose[];
 }
 
 export async function insertDailyClose(close: {
@@ -176,14 +177,14 @@ export async function isTodayClosed() {
 
 // ── Delivery People ──
 
-export async function fetchDeliveryPeople() {
+export async function fetchDeliveryPeople(): Promise<DeliveryPerson[]> {
   const { data, error } = await supabase
     .from("delivery_people")
     .select("*")
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as DeliveryPerson[];
 }
 
 export async function insertDeliveryPerson(person: {
@@ -207,14 +208,14 @@ export async function deleteDeliveryPerson(id: string) {
 
 // ── Zones ──
 
-export async function fetchZones() {
+export async function fetchZones(): Promise<Zone[]> {
   const { data, error } = await supabase
     .from("zones")
     .select("*")
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Zone[];
 }
 
 export async function insertZone(name: string) {
@@ -234,12 +235,12 @@ export async function deleteZone(id: string) {
 
 // ── Zone Prices ──
 
-export async function fetchZonePrices(zoneId?: string) {
+export async function fetchZonePrices(zoneId?: string): Promise<ZonePrice[]> {
   let query = supabase.from("zone_prices").select("*").eq("active", true).order("service_name");
   if (zoneId) query = query.eq("zone_id", zoneId);
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as ZonePrice[];
 }
 
 export async function upsertZonePrice(zoneId: string, serviceName: string, price: number) {
@@ -271,7 +272,7 @@ export async function fetchAppSettings(): Promise<Record<string, number>> {
   const { data, error } = await supabase.from("app_settings").select("*");
   if (error) throw error;
   const map: Record<string, number> = {};
-  (data ?? []).forEach((s: any) => { map[s.key] = s.value; });
+  (data ?? []).forEach((s: { key: string; value: number }) => { map[s.key] = s.value; });
   return map;
 }
 
@@ -285,14 +286,14 @@ export async function updateAppSetting(key: string, value: number) {
 
 // ── Payment Methods ──
 
-export async function fetchPaymentMethods() {
+export async function fetchPaymentMethods(): Promise<PaymentMethod[]> {
   const { data, error } = await supabase
     .from("payment_methods")
     .select("*")
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as PaymentMethod[];
 }
 
 export async function insertPaymentMethod(name: string) {
@@ -307,14 +308,14 @@ export async function deletePaymentMethod(id: string) {
 
 // ── Clients ──
 
-export async function fetchClients() {
+export async function fetchClients(): Promise<Client[]> {
   const { data, error } = await supabase
     .from("clients")
     .select("*")
     .eq("active", true)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Client[];
 }
 
 export async function insertClient(client: { name: string; phone: string; address: string; created_by: string }) {
@@ -350,11 +351,11 @@ export async function insertCashAuditLog(entry: {
   if (error) throw error;
 }
 
-export async function fetchCashAuditLog() {
+export async function fetchCashAuditLog(): Promise<CashAuditLog[]> {
   const { data, error } = await supabase
     .from("cash_audit_log")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as CashAuditLog[];
 }
