@@ -37,7 +37,7 @@ export interface CashEntry {
   amount: number;
   description: string;
   category: string | null;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -58,7 +58,7 @@ export interface DeliveryPerson {
   name: string;
   phone: string;
   active: boolean;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -95,7 +95,7 @@ export interface Client {
   phone: string;
   address: string;
   active: boolean;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }
 
