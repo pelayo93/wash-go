@@ -50,27 +50,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const ROLE_CACHE_PREFIX = "user_role_";
 
-  const cacheRole = (userId: string | undefined, value: AppRole | null) => {
-    if (!userId) return;
-    try {
-      localStorage.setItem(ROLE_CACHE_PREFIX + userId, value ?? "null");
-    } catch {
-      // silently ignore storage errors
-    }
-  };
+const cacheRole = (userId: string | undefined, value: AppRole | null) => {
+  if (!userId) return;
+  try {
+    localStorage.setItem(
+      ROLE_CACHE_PREFIX + userId,
+      JSON.stringify({ value: value ?? "null", cachedAt: Date.now() })
+    );
+  } catch {
+    // silently ignore storage errors
+  }
+};
 
-  const readCachedRole = (
-    userId: string | undefined,
-  ): AppRole | null | undefined => {
-    if (!userId) return undefined;
-    try {
-      const v = localStorage.getItem(ROLE_CACHE_PREFIX + userId);
-      if (v === null) return undefined;
-      return v === "null" ? null : (v as AppRole);
-    } catch {
+  const readCachedRole = (userId: string | undefined): AppRole | null | undefined => {
+  if (!userId) return undefined;
+  try {
+    const raw = localStorage.getItem(ROLE_CACHE_PREFIX + userId);
+    if (raw === null) return undefined;
+    const { value, cachedAt } = JSON.parse(raw);
+    if (Date.now() - cachedAt > 30 * 60 * 1000) {
+      localStorage.removeItem(ROLE_CACHE_PREFIX + userId);
       return undefined;
     }
-  };
+    return value === "null" ? null : (value as AppRole);
+  } catch {
+    return undefined;
+  }
+};
 
   const fetchRole = async (userId: string) => {
     // race the actual query against a manual timeout to avoid hanging when
