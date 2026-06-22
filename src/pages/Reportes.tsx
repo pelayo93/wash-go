@@ -240,8 +240,8 @@ export default function Reportes() {
       [{ label: "Zona", value: selectedZone }, { label: "Servicios", value: zoneSummary.count.toString() }, { label: "Total", value: formatCOP(zoneSummary.total) }]);
   };
 
-  const totalDeliveries = byPerson.reduce((s, [, d]) => s + d.deliveries, 0);
-  const totalPickups = byPerson.reduce((s, [, d]) => s + d.pickups, 0);
+  const totalDeliveries = filteredRentals.filter((r) => r.delivered_by).length;
+  const totalPickups    = filteredRentals.filter((r) => r.picked_up_by).length;
   const totalPersonAmount = byPerson.reduce((s, [, d]) => s + d.total, 0);
 
   const handleExportAllPersonsCSV = () => {
