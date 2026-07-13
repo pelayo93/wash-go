@@ -1,73 +1,54 @@
-# Welcome to your Lovable project
+# Wash & Go
 
-## Project info
+Sistema de gestión para negocio de alquiler de lavadoras (lavado a domicilio / renta de electrodomésticos). Permite controlar pedidos, caja diaria, precios por zona y reportes, con distintos niveles de acceso por usuario.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**App en producción**: https://wash-go.vercel.app
 
-## How can I edit this code?
+## Funcionalidades
 
-There are several ways of editing your application.
+- **Panel de Control** — resumen general del negocio (pedidos activos, ingresos, alertas).
+- **Alquileres** — registro y seguimiento de pedidos:
+  - Creación de pedido normal (queda `activo` hasta completar la entrega/retiro).
+  - **Solo Gas**: registro de recarga de gas sin alquiler completo.
+  - **Pago Adelantado**: el cliente paga al momento de pedir (no al retirar). El ingreso se registra en Caja ese mismo día; al completar el pedido solo se marca quién retiró y la hora, sin volver a cobrar.
+  - Identificación de la lavadora asignada: número (1 al 35) y marca (Mabe / Haceb).
+  - Métodos de pago: efectivo, transferencia, dividido (efectivo + transferencia), o pago pendiente (deuda a cobrar después).
+- **Caja Diaria** — control de ingresos y egresos, reconciliación de efectivo/transferencia.
+- **Servicios y Zonas** — configuración de zonas de cobertura, precios por tipo de servicio y recargos (horas extra, piso).
+- **Reportes** — reportes financieros y operativos por período.
+- **Usuarios** — gestión de usuarios y roles con acceso a la aplicación.
 
-**Use Lovable**
+## Stack técnico
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- [Vite](https://vitejs.dev/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [shadcn-ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- [Supabase](https://supabase.com/) (base de datos Postgres, autenticación, RLS)
+- Despliegue continuo en [Vercel](https://vercel.com/)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Desarrollo local
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requisito: Node.js y npm ([instalar con nvm](https://github.com/nvm-sh/nvm#installing-and-updating)).
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Clonar el repositorio
+git clone https://github.com/pelayo93/wash-go.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Entrar al proyecto
+cd wash-go
 
-# Step 3: Install the necessary dependencies.
+# 3. Instalar dependencias
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Levantar el servidor de desarrollo
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Base de datos (Supabase)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Las migraciones SQL están en `supabase/migrations/`. Al agregar una nueva, correrla manualmente en el **SQL Editor** del proyecto de Supabase (Dashboard → SQL Editor → pegar → Run) para que quede aplicada en la base real.
 
-**Use GitHub Codespaces**
+## Edición del código
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Directo en GitHub**: entra al archivo, ícono de lápiz (editar), commit.
+- **Localmente**: clona el repo, edita con tu IDE, y haz push — los cambios se reflejan en el despliegue de Vercel automáticamente.
+- **Lovable**: el proyecto sigue sincronizado con [Lovable](https://lovable.dev/), útil para cambios visuales/UI rápidos. Para lógica de negocio (pagos, caja, reportes) se recomienda editar el código directamente para no romper reglas ya afinadas.
