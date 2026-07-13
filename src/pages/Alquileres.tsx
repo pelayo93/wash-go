@@ -503,7 +503,7 @@ export default function Alquileres() {
                   <SelectTrigger><SelectValue placeholder="Seleccionar (opcional)" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Mabe">Mabe</SelectItem>
-                    <SelectItem value="Acem">Acem</SelectItem>
+                    <SelectItem value="Haceb">Haceb</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
