@@ -28,6 +28,12 @@ export async function insertRental(rental: {
   entry_time: string;
   exit_time: string;
   created_by: string;
+  payment_method?: string;
+  payment_pending?: boolean;
+  payment_prepaid?: boolean;
+  payment_split?: boolean;
+  payment_cash_amount?: number;
+  payment_transfer_amount?: number;
 }) {
   const { error } = await supabase.from("rentals").insert(rental);
   if (error) throw error;
