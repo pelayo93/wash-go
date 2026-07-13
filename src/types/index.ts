@@ -15,6 +15,8 @@ export interface Rental {
   floor_surcharge: number;
   total: number;
   floor_number: string;
+  washer_number: string | null;
+  washer_brand: string | null;
   delivered_by: string;
   picked_up_by: string | null;
   entry_time: string;
