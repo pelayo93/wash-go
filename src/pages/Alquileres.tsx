@@ -69,6 +69,8 @@ export default function Alquileres() {
   const [address, setAddress] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
   const [floorNumber, setFloorNumber] = useState("");
+  const [washerNumber, setWasherNumber] = useState("");
+  const [washerBrand, setWasherBrand] = useState("");
   const [deliveredBy, setDeliveredBy] = useState("");
   const [entryTime, setEntryTime] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -141,6 +143,7 @@ export default function Alquileres() {
   const resetForm = () => {
     setClientName(""); setPhone(""); setAddress("");
     setSelectedZone(""); setFloorNumber("");
+    setWasherNumber(""); setWasherBrand("");
     setDeliveredBy(""); setEntryTime("");
     setSoloGas(false); setSoloGasNote(""); setSoloGasPrice(0);
     setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false);
@@ -221,7 +224,8 @@ export default function Alquileres() {
           zone: selectedZone, service_type: prepaidServiceType,
           price: prepaidBasePrice, extra_hours: prepaidExtraHours,
           floor_surcharge: prepaidFloorSurcharge, total: prepaidTotal,
-          floor_number: floorNumber, delivered_by: deliveredBy,
+          floor_number: floorNumber, washer_number: washerNumber, washer_brand: washerBrand,
+          delivered_by: deliveredBy,
           picked_up_by: "", entry_time: entryTime,
           exit_time: "", created_by: user!.id,
           payment_method: paymentMethodLabel,
@@ -258,7 +262,8 @@ export default function Alquileres() {
           zone: selectedZone, service_type: "Solo Gas",
           price: soloGasPrice, extra_hours: 0,
           floor_surcharge: 0, total: soloGasPrice,
-          floor_number: floorNumber, delivered_by: deliveredBy,
+          floor_number: floorNumber, washer_number: washerNumber, washer_brand: washerBrand,
+          delivered_by: deliveredBy,
           picked_up_by: "", entry_time: entryTime,
           exit_time: "", created_by: user!.id,
         });
@@ -275,7 +280,8 @@ export default function Alquileres() {
         zone: selectedZone, service_type: "",
         price: 0, extra_hours: 0,
         floor_surcharge: 0, total: 0,
-        floor_number: floorNumber, delivered_by: deliveredBy,
+        floor_number: floorNumber, washer_number: washerNumber, washer_brand: washerBrand,
+        delivered_by: deliveredBy,
         picked_up_by: "", entry_time: entryTime,
         exit_time: "", created_by: user!.id,
       });
@@ -479,6 +485,27 @@ export default function Alquileres() {
               <div className="space-y-2">
                 <Label>Número de Piso</Label>
                 <Input value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="Ej: 3" />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><WashingMachine className="h-3.5 w-3.5" /> N° de Lavadora</Label>
+                <Select value={washerNumber} onValueChange={setWasherNumber}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 35 }, (_, i) => String(i + 1)).map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Marca de Lavadora</Label>
+                <Select value={washerBrand} onValueChange={setWasherBrand}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mabe">Mabe</SelectItem>
+                    <SelectItem value="Acem">Acem</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Entregó</Label>
@@ -935,6 +962,7 @@ export default function Alquileres() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.zone} {r.service_type && `• ${r.service_type}`} • {r.address} {r.floor_number && `• Piso ${r.floor_number}`}
+                      {r.washer_number && ` • Lavadora N°${r.washer_number}${r.washer_brand ? ` (${r.washer_brand})` : ""}`}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {r.delivered_by && `Entregó: ${r.delivered_by}`}{r.picked_up_by && ` • Retiró: ${r.picked_up_by}`}
