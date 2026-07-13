@@ -277,6 +277,8 @@ export type Database = {
           service_type: string
           status: string
           total: number
+          washer_number: string | null
+          washer_brand: string | null
           zone: string
         }
         Insert: {
@@ -304,6 +306,8 @@ export type Database = {
           service_type: string
           status?: string
           total?: number
+          washer_number?: string | null
+          washer_brand?: string | null
           zone: string
         }
         Update: {
@@ -331,6 +335,8 @@ export type Database = {
           service_type?: string
           status?: string
           total?: number
+          washer_number?: string | null
+          washer_brand?: string | null
           zone?: string
         }
         Relationships: []
