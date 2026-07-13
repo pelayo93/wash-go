@@ -268,6 +268,7 @@ export type Database = {
           payment_cash_amount: number
           payment_method: string
           payment_pending: boolean
+          payment_prepaid: boolean
           payment_split: boolean
           payment_transfer_amount: number
           phone: string
@@ -294,6 +295,7 @@ export type Database = {
           payment_cash_amount?: number
           payment_method?: string
           payment_pending?: boolean
+          payment_prepaid?: boolean
           payment_split?: boolean
           payment_transfer_amount?: number
           phone: string
@@ -320,6 +322,7 @@ export type Database = {
           payment_cash_amount?: number
           payment_method?: string
           payment_pending?: boolean
+          payment_prepaid?: boolean
           payment_split?: boolean
           payment_transfer_amount?: number
           phone?: string
