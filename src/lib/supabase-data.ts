@@ -23,6 +23,8 @@ export async function insertRental(rental: {
   floor_surcharge: number;
   total: number;
   floor_number: string;
+  washer_number?: string;
+  washer_brand?: string;
   delivered_by: string;
   picked_up_by: string;
   entry_time: string;
