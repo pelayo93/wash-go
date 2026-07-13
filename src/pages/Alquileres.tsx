@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Rental, DeliveryPerson, Client, PaymentMethod } from "@/types";
 import {
-  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame, Trash2,
+  WashingMachine, Plus, Phone, MapPin, User, Check, Clock, UserCheck, CreditCard, Flame, Trash2, Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,16 @@ export default function Alquileres() {
   const [soloGasPaymentMethod, setSoloGasPaymentMethod] = useState("");
   const [soloGasPaymentPending, setSoloGasPaymentPending] = useState(false);
 
+  // Pago Adelantado form state (se cobra al registrar el pedido, no al completarlo)
+  const [prepaid, setPrepaid] = useState(false);
+  const [prepaidServiceType, setPrepaidServiceType] = useState("");
+  const [prepaidExtraHours, setPrepaidExtraHours] = useState(0);
+  const [prepaidFloorSurcharge, setPrepaidFloorSurcharge] = useState(0);
+  const [prepaidPaymentMethod, setPrepaidPaymentMethod] = useState("");
+  const [prepaidPaymentSplit, setPrepaidPaymentSplit] = useState(false);
+  const [prepaidCashAmount, setPrepaidCashAmount] = useState(0);
+  const [prepaidTransferAmount, setPrepaidTransferAmount] = useState(0);
+
   // Collect pending payment state
   const [collectingRental, setCollectingRental] = useState<any | null>(null);
   const [collectPaymentMethod, setCollectPaymentMethod] = useState("");
@@ -95,6 +105,13 @@ export default function Alquileres() {
   const completeBasePrice = completeZoneObj && completeServiceType ? completeZoneObj.prices[completeServiceType] || 0 : 0;
   const completeFloorSurcharge = completeFloorSurchargeCustom;
   const completeTotal = completeBasePrice + completeExtraHours * surcharges.extraHora + completeFloorSurcharge + (completeGasRequested ? completeGasPrice : 0);
+  const isPrepaidCompletion = completingRental?.payment_prepaid === true;
+
+  // Pago Adelantado pricing (usa la zona ya seleccionada en el formulario principal)
+  const prepaidZoneObj = ZONES.find((z) => z.name === selectedZone);
+  const prepaidServiceTypes = prepaidZoneObj ? Object.keys(prepaidZoneObj.prices) : [];
+  const prepaidBasePrice = prepaidZoneObj && prepaidServiceType ? prepaidZoneObj.prices[prepaidServiceType] || 0 : 0;
+  const prepaidTotal = prepaidBasePrice + prepaidExtraHours * surcharges.extraHora + prepaidFloorSurcharge;
 
   const loadDeliveryPeople = useCallback(async () => {
     try {
@@ -127,6 +144,9 @@ export default function Alquileres() {
     setDeliveredBy(""); setEntryTime("");
     setSoloGas(false); setSoloGasNote(""); setSoloGasPrice(0);
     setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false);
+    setPrepaid(false); setPrepaidServiceType(""); setPrepaidExtraHours(0);
+    setPrepaidFloorSurcharge(0); setPrepaidPaymentMethod(""); setPrepaidPaymentSplit(false);
+    setPrepaidCashAmount(0); setPrepaidTransferAmount(0);
     setSelectedClientId(null); setClientSearch("");
     setShowForm(false);
   };
@@ -181,6 +201,51 @@ export default function Alquileres() {
         setClients(prev => [...prev, newClient].sort((a, b) => a.name.localeCompare(b.name)));
       } catch (err) { console.error("Error saving client:", err); }
     }
+    if (prepaid) {
+      if (!prepaidServiceType) {
+        toast({ title: "Selecciona el tipo de servicio", variant: "destructive" });
+        return;
+      }
+      if (!prepaidPaymentSplit && !prepaidPaymentMethod) {
+        toast({ title: "Selecciona el método de pago", variant: "destructive" });
+        return;
+      }
+      if (prepaidPaymentSplit && (prepaidCashAmount + prepaidTransferAmount) !== prepaidTotal) {
+        toast({ title: "Los montos divididos deben sumar el total", variant: "destructive" });
+        return;
+      }
+      try {
+        const paymentMethodLabel = prepaidPaymentSplit ? "Dividido" : prepaidPaymentMethod;
+        await insertRental({
+          client_name: clientName, phone, address,
+          zone: selectedZone, service_type: prepaidServiceType,
+          price: prepaidBasePrice, extra_hours: prepaidExtraHours,
+          floor_surcharge: prepaidFloorSurcharge, total: prepaidTotal,
+          floor_number: floorNumber, delivered_by: deliveredBy,
+          picked_up_by: "", entry_time: entryTime,
+          exit_time: "", created_by: user!.id,
+          payment_method: paymentMethodLabel,
+          payment_prepaid: true,
+          payment_pending: false,
+          payment_split: prepaidPaymentSplit,
+          payment_cash_amount: prepaidPaymentSplit ? prepaidCashAmount : 0,
+          payment_transfer_amount: prepaidPaymentSplit ? prepaidTransferAmount : 0,
+        });
+        // El ingreso se registra HOY, el día del pago adelantado — no se vuelve a cobrar al completar
+        await insertCashEntry({
+          type: "income",
+          amount: prepaidTotal,
+          description: `Pago adelantado - ${clientName} (${selectedZone}) ${prepaidServiceType}${prepaidPaymentSplit ? " [Dividido]" : ` [${prepaidPaymentMethod}]`}`,
+          category: "alquiler",
+          created_by: user!.id,
+        });
+        resetForm();
+        toast({ title: "Pedido registrado con pago adelantado ✓ — Usa 'Completar' solo para marcar el retiro" });
+      } catch (err: any) {
+        toast({ title: err.message || "Error al registrar", variant: "destructive" });
+      }
+      return;
+    }
     if (soloGas) {
       if (soloGasPrice <= 0) {
         toast({ title: "Ingresa el precio del gas", variant: "destructive" });
@@ -222,6 +287,25 @@ export default function Alquileres() {
   };
 
   const completeRental = async () => {
+    if (!completingRental) return;
+
+    // Pago Adelantado: ya se cobró el día del pedido. Al completar solo se
+    // registra quién retiró y la hora — no se pide método de pago ni se
+    // genera un nuevo ingreso en Caja (ya se registró cuando se pagó).
+    if (isPrepaidCompletion) {
+      try {
+        await updateRentalStatus(completingRental.id, "completed", {
+          pickedUpBy: completePickedUpBy,
+          exitTime: completeExitTime,
+        });
+        closeCompleteDialog();
+        toast({ title: "Completado ✓ (ya estaba pagado por adelantado)" });
+      } catch (err: any) {
+        toast({ title: err.message || "Error", variant: "destructive" });
+      }
+      return;
+    }
+
     const isSoloGasOnly = !completeServiceType && completeGasRequested && completeGasPrice > 0;
     if (!completingRental || (!completeServiceType && !isSoloGasOnly)) {
       toast({ title: "Selecciona un tipo de servicio o registra gas", variant: "destructive" });
@@ -419,6 +503,7 @@ export default function Alquileres() {
                 <Checkbox
                   id="soloGas"
                   checked={soloGas}
+                  disabled={prepaid}
                   onCheckedChange={(v) => {
                     setSoloGas(!!v);
                     if (!v) { setSoloGasNote(""); setSoloGasPrice(0); setSoloGasPaymentMethod(""); setSoloGasPaymentPending(false); }
@@ -454,10 +539,105 @@ export default function Alquileres() {
               )}
             </div>
 
+            {/* Pago Adelantado option */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="prepaid"
+                  checked={prepaid}
+                  disabled={soloGas}
+                  onCheckedChange={(v) => {
+                    setPrepaid(!!v);
+                    if (!v) {
+                      setPrepaidServiceType(""); setPrepaidExtraHours(0); setPrepaidFloorSurcharge(0);
+                      setPrepaidPaymentMethod(""); setPrepaidPaymentSplit(false);
+                      setPrepaidCashAmount(0); setPrepaidTransferAmount(0);
+                    }
+                  }}
+                />
+                <label htmlFor="prepaid" className="text-sm font-medium cursor-pointer flex items-center gap-1">
+                  <Wallet className="h-3.5 w-3.5 text-primary" /> Pago Adelantado
+                </label>
+              </div>
+              {prepaid && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    El cliente ya pagó hoy. El ingreso se registra en Caja ahora mismo; al retirar, solo se marca "Completar" sin volver a cobrar.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tipo de Servicio</Label>
+                    <Select value={prepaidServiceType} onValueChange={setPrepaidServiceType}>
+                      <SelectTrigger><SelectValue placeholder={selectedZone ? "Seleccionar servicio" : "Selecciona primero una zona"} /></SelectTrigger>
+                      <SelectContent>
+                        {prepaidServiceTypes.map((st) => (
+                          <SelectItem key={st} value={st}>{st} - {formatCOP(prepaidZoneObj!.prices[st])}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Horas Extras ({formatCOP(surcharges.extraHora)}/h)</Label>
+                      <Input type="number" min={0} value={prepaidExtraHours} onChange={(e) => setPrepaidExtraHours(Number(e.target.value))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Recargo por Piso</Label>
+                      <Input type="number" min={0} value={prepaidFloorSurcharge} onChange={(e) => setPrepaidFloorSurcharge(Number(e.target.value))} placeholder="0" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-md bg-secondary/60 p-3">
+                    <Label className="text-xs flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="prepaidSplit"
+                        checked={prepaidPaymentSplit}
+                        onCheckedChange={(v) => { setPrepaidPaymentSplit(!!v); if (v) setPrepaidPaymentMethod(""); }}
+                      />
+                      <label htmlFor="prepaidSplit" className="text-xs text-muted-foreground cursor-pointer">Pago dividido (efectivo + transferencia)</label>
+                    </div>
+                    {prepaidPaymentSplit ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Efectivo</Label>
+                          <Input type="number" min={0} value={prepaidCashAmount} onChange={(e) => setPrepaidCashAmount(Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Transferencia</Label>
+                          <Input type="number" min={0} value={prepaidTransferAmount} onChange={(e) => setPrepaidTransferAmount(Number(e.target.value))} />
+                        </div>
+                        {prepaidTotal > 0 && (prepaidCashAmount + prepaidTransferAmount) !== prepaidTotal && (
+                          <p className="col-span-2 text-xs text-destructive">
+                            Suma: {formatCOP(prepaidCashAmount + prepaidTransferAmount)} — debe ser {formatCOP(prepaidTotal)}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <Select value={prepaidPaymentMethod} onValueChange={setPrepaidPaymentMethod}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger>
+                        <SelectContent>
+                          {paymentMethods.map((pm) => (
+                            <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {prepaidTotal > 0 && (
+                    <div className="flex justify-between font-bold text-sm pt-2 border-t border-border">
+                      <span>Total pagado</span>
+                      <span className="text-primary">{formatCOP(prepaidTotal)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
               <Button onClick={handleSubmit}>
-                <Check className="h-4 w-4 mr-1" /> {soloGas ? "Registrar Gas" : "Registrar"}
+                <Check className="h-4 w-4 mr-1" /> {soloGas ? "Registrar Gas" : prepaid ? "Registrar (Pagado)" : "Registrar"}
               </Button>
             </div>
           </CardContent>
@@ -469,7 +649,7 @@ export default function Alquileres() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {completingRental?.service_type === "Solo Gas" ? "Completar Pedido (Gas)" : "Completar Alquiler"}
+                {isPrepaidCompletion ? "Marcar Retiro (ya pagado)" : completingRental?.service_type === "Solo Gas" ? "Completar Pedido (Gas)" : "Completar Alquiler"}
               </DialogTitle>
             </DialogHeader>
           <div className="space-y-4 py-2">
@@ -481,6 +661,27 @@ export default function Alquileres() {
                 )}
               </p>
             )}
+
+            {isPrepaidCompletion && completingRental && (
+              <div className="rounded-lg bg-secondary p-4 space-y-1">
+                <p className="text-sm font-medium flex items-center gap-1">
+                  <CreditCard className="h-3.5 w-3.5" /> Pagado por adelantado
+                </p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{completingRental.service_type} ({completingRental.zone})</span>
+                  <span>{formatCOP(completingRental.total)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Método</span>
+                  <span>{completingRental.payment_method}</span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Este pago ya quedó registrado en Caja el día del pedido. Solo falta marcar quién retiró y la hora de salida.
+                </p>
+              </div>
+            )}
+
+            {!isPrepaidCompletion && (
             <div className="space-y-2">
               <Label>Tipo de Servicio {completeGasRequested ? "(opcional si solo es gas)" : ""}</Label>
               <Select value={completeServiceType} onValueChange={setCompleteServiceType}>
@@ -492,15 +693,20 @@ export default function Alquileres() {
                 </SelectContent>
               </Select>
             </div>
+            )}
+            {!isPrepaidCompletion && (
             <div className="space-y-2">
               <Label>Horas Extras ({formatCOP(surcharges.extraHora)}/h)</Label>
               <Input type="number" min={0} value={completeExtraHours} onChange={(e) => setCompleteExtraHours(Number(e.target.value))} />
             </div>
+            )}
+            {!isPrepaidCompletion && (
             <div className="space-y-2">
               <Label>Recargo por Piso</Label>
               <Input type="number" min={0} value={completeFloorSurchargeCustom} onChange={(e) => setCompleteFloorSurchargeCustom(Number(e.target.value))} placeholder="0" />
               <p className="text-xs text-muted-foreground">Ingresa el monto del recargo (0 si no aplica)</p>
             </div>
+            )}
             <div className="space-y-2">
               <Label className="flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Persona que Retiró</Label>
               <Select value={completePickedUpBy} onValueChange={setCompletePickedUpBy}>
@@ -518,6 +724,7 @@ export default function Alquileres() {
             </div>
 
             {/* Gas option */}
+            {!isPrepaidCompletion && (
             <div className="space-y-3 rounded-lg border border-border p-3">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -548,8 +755,10 @@ export default function Alquileres() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Payment method */}
+            {!isPrepaidCompletion && (
             <div className="space-y-3 rounded-lg border border-border p-3">
               <Label className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Método de Pago</Label>
               <div className="flex items-center gap-2">
@@ -605,8 +814,9 @@ export default function Alquileres() {
                 </>
               )}
             </div>
+            )}
 
-            {completeBasePrice > 0 && (
+            {!isPrepaidCompletion && completeBasePrice > 0 && (
               <div className="rounded-lg bg-secondary p-4 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Base ({completeServiceType})</span>
@@ -633,10 +843,12 @@ export default function Alquileres() {
               </div>
             )}
 
+            {!isPrepaidCompletion && (
             <div className="flex justify-between font-bold text-lg pt-3 pb-1 border-t border-border">
               <span>Total a cobrar</span>
               <span className="text-primary">{formatCOP(completeTotal)}</span>
             </div>
+            )}
 
             <div className="flex gap-2 justify-end">
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
@@ -714,7 +926,10 @@ export default function Alquileres() {
                       {r.payment_pending && (
                         <Badge variant="destructive" className="text-xs">Pago Pendiente</Badge>
                       )}
-                      {r.payment_method && !r.payment_pending && (
+                      {r.payment_prepaid && (
+                        <Badge variant="secondary" className="text-xs">Pagado (Adelantado)</Badge>
+                      )}
+                      {r.payment_method && !r.payment_pending && !r.payment_prepaid && (
                         <Badge variant="outline" className="text-xs">{r.payment_method}</Badge>
                       )}
                     </div>
