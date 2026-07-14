@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Zone, ZonePrice, Client, PaymentMethod } from "@/types";
-import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard, Users } from "lucide-react";
+import { Plus, Trash2, Save, MapPin, DollarSign, Edit2, CreditCard, Users, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,9 @@ export default function Servicios() {
   const [prices, setPrices] = useState<ZonePrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [clientsList, setClientsList] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientPage, setClientPage] = useState(1);
+  const CLIENTS_PER_PAGE = 10;
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
@@ -271,11 +274,41 @@ export default function Servicios() {
               <Plus className="h-4 w-4 mr-1" /> Agregar
             </Button>
           </div>
-          {clientsList.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Sin clientes registrados</p>
-          ) : (
-            <div className="space-y-1">
-              {clientsList.map((c) => (
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={clientSearch}
+              onChange={(e) => { setClientSearch(e.target.value); setClientPage(1); }}
+              placeholder="Buscar cliente por nombre, teléfono o dirección..."
+              className="pl-8 h-8 text-sm"
+            />
+          </div>
+          {(() => {
+            const filteredClients = clientsList.filter((c) => {
+              const q = clientSearch.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                c.name.toLowerCase().includes(q) ||
+                (c.phone || "").toLowerCase().includes(q) ||
+                (c.address || "").toLowerCase().includes(q)
+              );
+            });
+            const totalPages = Math.max(1, Math.ceil(filteredClients.length / CLIENTS_PER_PAGE));
+            const safePage = Math.min(clientPage, totalPages);
+            const paginatedClients = filteredClients.slice((safePage - 1) * CLIENTS_PER_PAGE, safePage * CLIENTS_PER_PAGE);
+
+            if (filteredClients.length === 0) {
+              return (
+                <p className="text-xs text-muted-foreground">
+                  {clientSearch ? "Ningún cliente coincide con la búsqueda" : "Sin clientes registrados"}
+                </p>
+              );
+            }
+
+            return (
+              <>
+                <div className="space-y-1">
+                  {paginatedClients.map((c) => (
                 <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{c.name}</p>
@@ -320,8 +353,33 @@ export default function Servicios() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      Página {safePage} de {totalPages} • {filteredClients.length} cliente{filteredClients.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline" size="icon" className="h-7 w-7"
+                        disabled={safePage <= 1}
+                        onClick={() => setClientPage((p) => Math.max(1, p - 1))}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline" size="icon" className="h-7 w-7"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setClientPage((p) => Math.min(totalPages, p + 1))}
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
