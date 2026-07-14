@@ -128,13 +128,19 @@ export default function Reportes() {
       const transfer = r.payment_split ? (r.payment_transfer_amount || 0) : (!r.payment_method?.toLowerCase().includes("efectivo") ? r.total : 0);
       const sameperson = r.delivered_by && r.picked_up_by && r.delivered_by === r.picked_up_by;
 
-      // Registrar entrega
+// Registrar entrega
       if (r.delivered_by) {
         if (!map[r.delivered_by]) map[r.delivered_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.delivered_by].deliveries++;
         map[r.delivered_by].totalDeliveries += r.total;
-        // Si es la misma persona que retira, acumular total + cash/transfer aquí (una sola vez)
-        if (sameperson) {
+        // Pago Adelantado: el dinero ya lo cobró quien entregó, se refleja de inmediato
+        // sin esperar a que se complete/retire el pedido (la lavadora sigue activa).
+        if (r.payment_prepaid) {
+          map[r.delivered_by].total += r.total;
+          map[r.delivered_by].cashTotal += cash;
+          map[r.delivered_by].transferTotal += transfer;
+        } else if (sameperson) {
+          // Si es la misma persona que retira, acumular total + cash/transfer aquí (una sola vez)
           map[r.delivered_by].total += r.total;
           map[r.delivered_by].cashTotal += cash;
           map[r.delivered_by].transferTotal += transfer;
@@ -146,8 +152,9 @@ export default function Reportes() {
         if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
         map[r.picked_up_by].pickups++;
         map[r.picked_up_by].totalPickups += r.total;
-        // Si son personas distintas, el dinero lo maneja quien retira
-        if (!sameperson) {
+        // Si son personas distintas, el dinero lo maneja quien retira —
+        // excepto en Pago Adelantado, donde ya se contó en la entrega (no duplicar).
+        if (!sameperson && !r.payment_prepaid) {
           map[r.picked_up_by].total += r.total;
           map[r.picked_up_by].cashTotal += cash;
           map[r.picked_up_by].transferTotal += transfer;
