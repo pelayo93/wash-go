@@ -150,8 +150,12 @@ export default function Reportes() {
       // Registrar retiro
       if (r.picked_up_by) {
         if (!map[r.picked_up_by]) map[r.picked_up_by] = { deliveries: 0, pickups: 0, totalDeliveries: 0, totalPickups: 0, total: 0, cashTotal: 0, transferTotal: 0 };
-        map[r.picked_up_by].pickups++;
-        map[r.picked_up_by].totalPickups += r.total;
+       map[r.picked_up_by].pickups++;
+        // Pago Adelantado: no sumar el monto de nuevo en "retiros" — ya se
+        // contó al entregar; sumarlo aquí también inflaba visualmente el total.
+        if (!r.payment_prepaid) {
+          map[r.picked_up_by].totalPickups += r.total;
+        }
         // Si son personas distintas, el dinero lo maneja quien retira —
         // excepto en Pago Adelantado, donde ya se contó en la entrega (no duplicar).
         if (!sameperson && !r.payment_prepaid) {
@@ -183,9 +187,10 @@ export default function Reportes() {
         if (!map[r.delivered_by]) map[r.delivered_by] = [];
         map[r.delivered_by].push({ ...base, role: "Entrega" });
       }
-      if (r.picked_up_by) {
+  if (r.picked_up_by) {
         if (!map[r.picked_up_by]) map[r.picked_up_by] = [];
-        map[r.picked_up_by].push({ ...base, role: "Retiro" });
+        // Pago Adelantado: la fila de Retiro no repite el monto (ya se contó en Entrega)
+        map[r.picked_up_by].push({ ...base, total: r.payment_prepaid ? 0 : base.total, role: "Retiro" });
       }
     });
     return map;
