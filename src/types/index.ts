@@ -103,11 +103,26 @@ export interface Client {
 }
 
 // ── CashAuditLog ─────────────────────────────
+export interface CashAuditLogCreateDetails {
+  type: "income" | "expense";
+  amount: number;
+  description: string;
+}
+export interface CashAuditLogUpdateDetails {
+  old: { amount: number; description: string };
+  new: { amount: number; description: string };
+}
+export interface CashAuditLogDailyCloseDetails {
+  date: string;
+  income: number;
+  expense: number;
+  balance: number;
+}
 export interface CashAuditLog {
   id: string;
   action: string;
   cash_entry_id: string | null;
-  details: Record<string, unknown>;
+  details: CashAuditLogCreateDetails | CashAuditLogUpdateDetails | CashAuditLogDailyCloseDetails;
   performed_by: string;
   created_at: string;
 }
