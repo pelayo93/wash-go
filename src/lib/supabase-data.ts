@@ -365,5 +365,4 @@ export async function fetchCashAuditLog(): Promise<CashAuditLog[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as CashAuditLog[];
-}
+  return (data ?? []) as unknown as CashAuditLog[];}
