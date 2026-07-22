@@ -72,7 +72,10 @@ export default function Reportes() {
   // Rentals in range (use Bogota local date based on completion when available)
   const filteredRentals = useMemo(() =>
     allRentals.filter((r) => {
-      const ref = r.completed_at || r.created_at;
+    // Pago Adelantado: la fecha del reporte es siempre el día en que se
+      // cobró (creación), no el día en que se completa después — ese dinero
+      // ya se recibió antes y no debe "moverse" de día al completar.
+      const ref = r.payment_prepaid ? r.created_at : (r.completed_at || r.created_at);
       const d = toBogotaDate(ref);
       return d >= startDate && d <= endDate;
     }), [allRentals, startDate, endDate]);
@@ -273,7 +276,7 @@ export default function Reportes() {
     if (!selectedPerson) return [] as (Rental & { _role: string; _fecha: string; _pago: string })[];
     const rows: (Rental & { _role: string; _fecha: string; _pago: string })[] = [];
     personRentals.forEach((r) => {
-      const refDate = r.completed_at || r.created_at;
+      const refDate = r.payment_prepaid ? r.created_at : (r.completed_at || r.created_at);
       const fecha = new Date(refDate).toLocaleDateString("es-CO");
       const pago = r.payment_split
         ? `Ef: ${formatCOP(r.payment_cash_amount || 0)} / Tr: ${formatCOP(r.payment_transfer_amount || 0)}`
