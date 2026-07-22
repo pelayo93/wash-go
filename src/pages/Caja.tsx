@@ -189,11 +189,11 @@ export default function Caja() {
                         {new Date(log.created_at).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {log.action === "create" && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
-                      {log.action === "update" && `De ${formatCOP(log.details.old?.amount)} → ${formatCOP(log.details.new?.amount)}`}
-                      {log.action === "delete" && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
-                      {log.action === "daily_close" && `Balance: ${formatCOP(log.details.balance)}`}
+                     <div className="text-xs text-muted-foreground">
+                      {log.action === "create" && "type" in log.details && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
+                      {log.action === "update" && "old" in log.details && `De ${formatCOP(log.details.old?.amount)} → ${formatCOP(log.details.new?.amount)}`}
+                      {log.action === "delete" && "type" in log.details && `${log.details.type === "income" ? "Entrada" : "Salida"}: ${formatCOP(log.details.amount)} - ${log.details.description}`}
+                      {log.action === "daily_close" && "balance" in log.details && `Balance: ${formatCOP(log.details.balance)}`}
                     </div>
                   </div>
                 ))}
