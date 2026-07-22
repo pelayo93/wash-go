@@ -924,7 +924,7 @@ export default function Alquileres() {
         <CardContent>
           {(() => {
             const filtered = rentals.filter((r) => {
-              const ref = r.completed_at || r.created_at;
+              const ref = r.payment_prepaid ? r.created_at : (r.completed_at || r.created_at);
               let rentalDate = "";
               if (ref) {
                 const dt = new Date(ref);
