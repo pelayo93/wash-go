@@ -13,6 +13,7 @@ import Usuarios from "@/pages/Usuarios";
 import Servicios from "@/pages/Servicios";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
+import OAuthConsent from "@/pages/OAuthConsent";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
