@@ -13,12 +13,26 @@ import Usuarios from "@/pages/Usuarios";
 import Servicios from "@/pages/Servicios";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
+import OAuthConsent from "@/pages/OAuthConsent";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, role, loading, error, isPasswordRecovery } = useAuth();
+
+  // OAuth consent page must be reachable regardless of auth state; the page
+  // itself handles redirecting unauthenticated users to sign in.
+  const isConsentRoute =
+    typeof window !== "undefined" &&
+    window.location.pathname === "/.lovable/oauth/consent";
+  if (isConsentRoute) {
+    return (
+      <Routes>
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+      </Routes>
+    );
+  }
 
   // If user landed via a password recovery link, show the reset form
   if (isPasswordRecovery) {
